@@ -1,0 +1,2635 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width, initial-scale=1">
+<title>Larkspun</title>
+<meta name="description" content="Hum a melody into your phone and get it back as an arranged, produced song. Free test build; runs entirely in your browser.">
+<meta name="theme-color" content="#f2f2ee" media="(prefers-color-scheme: light)">
+<meta name="theme-color" content="#11121a" media="(prefers-color-scheme: dark)">
+<meta name="apple-mobile-web-app-capable" content="yes">
+<meta name="mobile-web-app-capable" content="yes">
+<meta name="apple-mobile-web-app-title" content="Larkspun">
+<link rel="manifest" href="manifest.webmanifest">
+<link rel="icon" type="image/png" sizes="32x32" href="assets/favicon-32.png">
+<link rel="apple-touch-icon" href="assets/apple-touch-icon.png">
+<meta property="og:type" content="website">
+<meta property="og:title" content="Larkspun">
+<meta property="og:description" content="Hum a melody into your phone and get it back as an arranged, produced song. Free test build; runs entirely in your browser.">
+<meta property="og:url" content="https://thatslanaa.github.io/larkspun/">
+<meta property="og:image" content="https://thatslanaa.github.io/larkspun/assets/og-image.png">
+<meta name="twitter:card" content="summary_large_image">
+<style>
+:root {
+  /* Layout: one phone-width column of three numbered stations (hum, describe, listen); the gold pitch thread on the roll is the one bold element. */
+  --paper: #f2f2ee;
+  --surface: #fdfdfb;
+  --ink: #1c1e2a;
+  --muted: #5d6070;
+  --line: #d9d9e1;
+  --larkspur: #4a4ac0;
+  --thread: #b06f12;
+  --on-accent: #ffffff;
+  --bad: #b3261e;
+  --display: "Bricolage Grotesque", "Avenir Next Condensed", "Arial Narrow", system-ui, sans-serif;
+  --body: "IBM Plex Sans", "Segoe UI", system-ui, -apple-system, sans-serif;
+  --mono: "IBM Plex Mono", ui-monospace, SFMono-Regular, Menlo, Consolas, monospace;
+  color-scheme: light;
+}
+@media (prefers-color-scheme: dark) {
+  :root:not([data-theme="light"]) {
+    --paper: #11121a; --surface: #191b26; --ink: #ebebf3; --muted: #a3a5b8; --line: #2d3042;
+    --larkspur: #a3a3ff; --thread: #eab350; --on-accent: #11121a; --bad: #ff8a80; color-scheme: dark;
+  }
+}
+:root[data-theme="dark"] {
+  --paper: #11121a; --surface: #191b26; --ink: #ebebf3; --muted: #a3a5b8; --line: #2d3042;
+  --larkspur: #a3a3ff; --thread: #eab350; --on-accent: #11121a; --bad: #ff8a80; color-scheme: dark;
+}
+
+* { box-sizing: border-box; }
+html, body { margin: 0; }
+body { background: var(--paper); color: var(--ink); font: 16px/1.5 var(--body); -webkit-font-smoothing: antialiased; }
+main { max-width: 760px; margin: 0 auto; padding: 28px 16px 56px; display: grid; gap: 18px; }
+h1, h2 { font-family: var(--display); text-wrap: balance; margin: 0; }
+p { margin: 0; }
+.mono { font-family: var(--mono); font-variant-numeric: tabular-nums; }
+.muted { color: var(--muted); }
+.small { font-size: 0.875rem; }
+
+header.top { display: grid; gap: 6px; padding: 4px 2px 6px; }
+.wordmark { font-size: clamp(2.7rem, 11vw, 4.6rem); font-weight: 800; letter-spacing: -0.045em; line-height: 0.9; font-variation-settings: "opsz" 96; }
+.wordmark span { color: var(--larkspur); }
+.tagline { font-size: 1.125rem; color: var(--muted); max-width: 34ch; }
+.preview-tag { justify-self: start; font: 500 0.75rem/1 var(--mono); letter-spacing: 0.04em; text-transform: uppercase; border: 1px solid var(--line); border-radius: 99px; padding: 6px 10px; color: var(--muted); }
+
+section.station { background: var(--surface); border: 1px solid var(--line); border-radius: 14px; padding: 18px; display: grid; gap: 14px; }
+.station-head { display: flex; align-items: baseline; gap: 12px; }
+.station-num { font: 500 0.8rem/1 var(--mono); color: var(--larkspur); border: 1.5px solid var(--larkspur); border-radius: 99px; width: 26px; height: 26px; display: grid; place-items: center; flex: none; }
+.station h2 { font-size: 1.5rem; font-weight: 700; letter-spacing: -0.02em; }
+.station-head .aside { margin-left: auto; }
+
+.row { display: flex; flex-wrap: wrap; gap: 8px; align-items: center; }
+button, .btn { font: 500 0.95rem/1 var(--body); color: var(--ink); background: transparent; border: 1.5px solid var(--line); border-radius: 10px; padding: 11px 14px; cursor: pointer; display: inline-flex; align-items: center; gap: 8px; min-height: 44px; }
+button:hover:not(:disabled) { border-color: var(--larkspur); }
+button:focus-visible, textarea:focus-visible, input:focus-visible, canvas:focus-visible { outline: 3px solid var(--larkspur); outline-offset: 2px; }
+button:disabled { opacity: 0.45; cursor: not-allowed; }
+button.primary { background: var(--larkspur); color: var(--on-accent); border-color: var(--larkspur); font-weight: 600; }
+button.record .dot { width: 11px; height: 11px; border-radius: 50%; background: var(--bad); }
+button.small-btn { min-height: 34px; padding: 7px 10px; font-size: 0.85rem; }
+button.chip { min-height: 34px; padding: 7px 11px; border-radius: 99px; font-size: 0.85rem; color: var(--muted); }
+button.chip[aria-pressed="true"] { color: var(--ink); border-color: var(--larkspur); background: color-mix(in srgb, var(--larkspur) 12%, transparent); }
+
+.roll-wrap { position: relative; border-radius: 10px; overflow: hidden; border: 1px solid var(--line); background: var(--paper); }
+canvas { display: block; width: 100%; }
+#roll { height: 210px; }
+.roll-label { position: absolute; left: 10px; top: 8px; font: 500 0.72rem/1 var(--mono); color: var(--muted); letter-spacing: 0.04em; text-transform: uppercase; pointer-events: none; }
+
+.readouts { display: grid; grid-template-columns: repeat(4, minmax(0, 1fr)); gap: 8px; }
+.readout { border-top: 1.5px solid var(--line); padding-top: 8px; display: grid; gap: 2px; }
+.readout .k { font-size: 0.75rem; color: var(--muted); text-transform: uppercase; letter-spacing: 0.05em; }
+.readout .v { font: 500 1.15rem/1.2 var(--mono); font-variant-numeric: tabular-nums; display: flex; align-items: center; gap: 6px; flex-wrap: wrap; }
+.tempo-fix { display: inline-flex; gap: 4px; }
+.tempo-fix button { min-height: 28px; padding: 3px 7px; font: 500 0.75rem/1 var(--mono); border-radius: 6px; }
+@media (max-width: 520px) { .readouts { grid-template-columns: repeat(2, minmax(0, 1fr)); } }
+
+.recording { display: flex; align-items: center; gap: 12px; padding: 10px 12px; border: 1.5px solid var(--bad); border-radius: 10px; }
+.meter { flex: 1; height: 8px; border-radius: 4px; background: var(--line); overflow: hidden; }
+.meter i { display: block; height: 100%; width: 0; background: var(--bad); }
+
+.notice { border-left: 3px solid var(--thread); padding: 10px 12px; background: color-mix(in srgb, var(--thread) 9%, transparent); border-radius: 0 8px 8px 0; font-size: 0.925rem; }
+.notice.error { border-left-color: var(--bad); background: color-mix(in srgb, var(--bad) 8%, transparent); }
+
+label.field { display: grid; gap: 6px; font-weight: 500; }
+textarea { width: 100%; font: 1rem/1.45 var(--body); color: var(--ink); background: var(--paper); border: 1.5px solid var(--line); border-radius: 10px; padding: 12px; resize: vertical; min-height: 92px; }
+.heard { font-size: 0.9rem; color: var(--muted); }
+.heard b { font-weight: 600; color: var(--ink); }
+.check { display: flex; gap: 10px; align-items: flex-start; font-size: 0.95rem; }
+.check input { width: 20px; height: 20px; margin: 2px 0 0; accent-color: var(--larkspur); flex: none; }
+
+.progress { display: grid; gap: 6px; }
+.bar { height: 6px; background: var(--line); border-radius: 3px; overflow: hidden; }
+.bar i { display: block; height: 100%; width: 0; background: var(--larkspur); transition: width 0.25s; }
+
+.song-title { display: flex; align-items: center; gap: 10px; flex-wrap: wrap; }
+.song-title h3 { margin: 0; font: 700 1.25rem/1.2 var(--display); letter-spacing: -0.01em; }
+.ai-badge { font: 500 0.72rem/1 var(--mono); text-transform: uppercase; letter-spacing: 0.06em; color: var(--thread); border: 1.5px solid var(--thread); border-radius: 6px; padding: 5px 7px; }
+.versions { display: flex; gap: 6px; flex-wrap: wrap; }
+.player { display: grid; grid-template-columns: auto 1fr; gap: 12px; align-items: center; }
+.play { width: 52px; height: 52px; border-radius: 50%; padding: 0; justify-content: center; background: var(--ink); color: var(--paper); border-color: var(--ink); }
+.play svg { width: 20px; height: 20px; fill: currentColor; }
+#timeline { height: 96px; cursor: pointer; border-radius: 8px; }
+.time { font: 0.8rem/1 var(--mono); color: var(--muted); display: flex; justify-content: space-between; margin-top: 6px; }
+
+.sections { display: grid; gap: 0; border-top: 1px solid var(--line); }
+.sec { display: grid; grid-template-columns: 8.5rem 1fr auto; gap: 4px 12px; align-items: center; padding: 10px 0; border-bottom: 1px solid var(--line); }
+.sec .name { font-weight: 600; display: grid; gap: 2px; }
+.sec .name small { font: 0.75rem/1.2 var(--mono); color: var(--muted); font-weight: 400; }
+.sec .chords { font: 0.85rem/1.4 var(--mono); color: var(--muted); overflow-wrap: anywhere; }
+.sec .lyrics { grid-column: 2 / 4; font-size: 0.875rem; font-style: italic; color: var(--muted); }
+.sec.playing .name { color: var(--larkspur); }
+.sec .energy { display: inline-block; height: 4px; border-radius: 2px; background: var(--larkspur); margin-top: 4px; }
+@media (max-width: 520px) { .sec { grid-template-columns: 1fr auto; } .sec .chords { grid-column: 1 / 3; grid-row: 2; } .sec .lyrics { grid-column: 1 / 3; } }
+
+.exports { display: grid; gap: 8px; }
+.library { display: grid; gap: 0; }
+.lib-item { display: grid; grid-template-columns: minmax(0, 1fr) auto auto; gap: 8px; align-items: center; padding: 10px 0; border-bottom: 1px solid var(--line); }
+.lib-item .meta { min-width: 0; display: grid; gap: 2px; }
+.lib-item .meta b { overflow-wrap: anywhere; }
+.lib-item .meta b { font-weight: 600; }
+footer { font-size: 0.85rem; color: var(--muted); display: grid; gap: 8px; padding: 0 2px; }
+footer p { max-width: 65ch; }
+footer details { max-width: 65ch; }
+footer summary { cursor: pointer; color: var(--ink); font-weight: 500; padding: 4px 0; }
+footer details p { margin-top: 8px; }
+footer a { color: var(--larkspur); }
+a.btn { text-decoration: none; justify-self: start; }
+a.btn.primary { background: var(--larkspur); color: var(--on-accent); border-color: var(--larkspur); font-weight: 600; }
+#reportBox { width: 100%; min-height: 160px; font: 0.8rem/1.4 var(--mono); }
+[hidden] { display: none !important; }
+@media (prefers-reduced-motion: reduce) { * { transition: none !important; animation: none !important; } }
+</style>
+</head>
+<body>
+<main>
+  <header class="top">
+    <span class="preview-tag">Test build</span>
+    <h1 class="wordmark">Lark<span>spun</span></h1>
+    <p class="tagline">Hum a melody. Get it back as an arranged, produced song.</p>
+  </header>
+
+  <!-- 1. Melody -->
+  <section class="station" id="stationHum" aria-labelledby="humTitle">
+    <div class="station-head"><span class="station-num">1</span><h2 id="humTitle">Your melody</h2></div>
+    <div class="row">
+      <button class="record" id="recordBtn" type="button"><span class="dot" aria-hidden="true"></span>Record</button>
+      <button id="uploadBtn" type="button">Upload a recording</button>
+      <button id="demoBtn" type="button">Use the example hum</button>
+      <input type="file" id="fileInput" accept="audio/*,.m4a,.mp3,.wav,.aac,.ogg,.oga,.opus,.webm,.caf,.flac" hidden>
+    </div>
+    <div class="recording" id="recordingPanel" hidden>
+      <span class="mono" id="recTime">0:00</span>
+      <div class="meter" aria-hidden="true"><i id="recLevel"></i></div>
+      <button class="small-btn" id="stopBtn" type="button">Stop</button>
+    </div>
+    <div class="notice" id="humNotice" role="status" hidden></div>
+    <div class="roll-wrap">
+      <span class="roll-label" id="rollLabel">Example hum</span>
+      <canvas id="roll" role="img" aria-label="Piano roll of the transcribed melody"></canvas>
+    </div>
+    <div class="readouts" aria-live="polite">
+      <div class="readout"><span class="k">Key</span><span class="v" id="keyOut">–</span></div>
+      <div class="readout"><span class="k">Tempo</span><span class="v"><span id="bpmOut">–</span><span class="tempo-fix"><button id="halfBtn" type="button" title="Tempo detected twice too fast? Halve it" aria-label="Halve the tempo">÷2</button><button id="doubleBtn" type="button" title="Tempo detected half as fast? Double it" aria-label="Double the tempo">×2</button></span></span></div>
+      <div class="readout"><span class="k">Length</span><span class="v" id="barsOut">–</span></div>
+      <div class="readout"><span class="k">Notes</span><span class="v" id="notesOut">–</span></div>
+    </div>
+    <div class="row">
+      <button class="small-btn" id="playHumBtn" type="button">Play the hum</button>
+      <span class="small muted" id="humMeta"></span>
+    </div>
+  </section>
+
+  <!-- 2. Describe -->
+  <section class="station" aria-labelledby="describeTitle">
+    <div class="station-head"><span class="station-num">2</span><h2 id="describeTitle">Describe your song</h2></div>
+    <label class="field" for="prompt">Genre, mood, tempo, instruments, artists it should feel like
+      <textarea id="prompt" rows="3" placeholder="dreamy synthwave, 90 BPM, female vocal feel, 80s drums"></textarea>
+    </label>
+    <div class="row" id="examples" aria-label="Example descriptions"></div>
+    <p class="heard" id="heard" aria-live="polite"></p>
+    <label class="check" for="vocals"><input type="checkbox" id="vocals"><span>Add lyrics and a synthetic vocal <span class="muted">(experimental, sounds robotic)</span></span></label>
+    <div class="row"><button class="primary" id="createBtn" type="button">Create song</button><span class="small muted" id="createHint"></span></div>
+  </section>
+
+  <!-- 3. Song -->
+  <section class="station" aria-labelledby="songTitle">
+    <div class="station-head"><span class="station-num">3</span><h2 id="songTitle">Your song</h2></div>
+    <p class="muted" id="songEmpty">Press Create song. Larkspun writes the chords, bass, drums, pads and lead around your melody and arranges it into Intro, Verse, Pre-Chorus, Chorus, Bridge and Outro. It takes 10 to 40 seconds on a phone.</p>
+    <div class="progress" id="progress" hidden>
+      <div class="bar"><i id="progressBar"></i></div>
+      <span class="small muted" id="progressText">Arranging…</span>
+    </div>
+    <div class="notice error" id="songError" role="alert" hidden></div>
+    <div id="songView" hidden>
+      <div style="display:grid;gap:14px">
+        <div class="song-title"><h3 id="songName">Song</h3><span class="ai-badge" title="Made by an AI system from your hum and description">AI-generated</span></div>
+        <p class="small muted mono" id="songMeta"></p>
+        <div class="versions" id="versions" aria-label="Versions"></div>
+        <div class="row" id="prepareRow" hidden><button class="primary" id="prepareBtn" type="button">Render this version</button><span class="small muted">Saved songs keep their arrangement; the audio is rebuilt on this device in 10 to 40 seconds.</span></div>
+        <div class="player">
+          <button class="play" id="playBtn" type="button" aria-label="Play"><svg viewBox="0 0 24 24" id="playIcon"><path d="M7 4.5v15l13-7.5z"/></svg></button>
+          <div>
+            <canvas id="timeline" tabindex="0" role="slider" aria-label="Song position, tap to jump" aria-valuemin="0" aria-valuemax="100" aria-valuenow="0"></canvas>
+            <div class="time"><span id="posOut">0:00</span><span id="secOut"></span><span id="durOut">0:00</span></div>
+          </div>
+        </div>
+        <div class="sections" id="sections"></div>
+        <div class="exports">
+          <div class="row">
+            <button id="exportBtn" type="button">Download song (.zip)</button>
+            <button id="exportStemsBtn" type="button">Download with stems (.zip)</button>
+          </div>
+          <a class="btn primary" id="saveLink" hidden>Save</a>
+          <p class="small muted" id="exportNote">The zip holds a WAV of the song, MIDI files of the song and your melody, and the project file. Every file is marked as AI-generated.</p>
+        </div>
+      </div>
+    </div>
+  </section>
+
+  <!-- Library -->
+  <section class="station" aria-labelledby="libTitle">
+    <div class="station-head"><h2 id="libTitle" style="font-size:1.2rem">Saved on this device</h2></div>
+    <div class="library" id="library"><p class="small muted">Songs you make are saved in this browser only.</p></div>
+  </section>
+
+  <footer>
+    <p>Everything runs in your browser. Your recording and your songs are never uploaded; they stay on this device until you delete them here or clear the browser's site data.</p>
+    <p>Songs are generated by an AI system from your hum and description, and every exported file says so in its metadata (EU AI Act, Article 50). Instruments, beats and lyrics are synthesised or written by Larkspun itself; no samples or third-party recordings are used.</p>
+    <details id="legal">
+      <summary>Legal notice and privacy</summary>
+      <p><b>Publisher:</b> a private individual acting in a non-professional capacity; as French law allows (LCEN art. 6-III-2), their identity is held by the host. <b>Contact:</b> open an issue at <a href="https://github.com/thatslanaa/larkspun/issues">https://github.com/thatslanaa/larkspun/issues</a>.</p>
+      <p><b>Host:</b> GitHub, Inc., 88 Colin P. Kelly Jr. Street, San Francisco, CA 94107, USA (GitHub Pages).</p>
+      <p><b>Your data:</b> this site sets no cookies and has no analytics, ads or trackers. Your recordings and songs are processed and stored only in your browser; nothing is sent to us. Like any web host, GitHub receives your IP address when you load the page (see <a href="https://docs.github.com/site-policy/privacy-policies/github-general-privacy-statement">GitHub's privacy statement</a>). The page loads nothing from any other company.</p>
+      <p><b>Use:</b> Larkspun is a free test version, provided as is, without warranty. It claims no rights in your recordings or in the songs you make. Only upload melodies you have the right to use.</p>
+    </details>
+    <div class="row"><button class="small-btn" id="reportBtn" type="button">Copy a test report</button><span class="small" id="reportState"></span></div>
+    <textarea id="reportBox" readonly hidden aria-label="Test report"></textarea>
+    <p class="mono small">Larkspun browser preview <span id="versionOut"></span></p>
+  </footer>
+</main>
+
+<script id="core-engine">
+/*
+ * Larkspun engine, JavaScript edition.
+ * A line-by-line port of backend/app/engine (pitch.py, analysis.py, style.py,
+ * theory.py, arranger.py, lyrics.py, midi.py, marking.py) so the whole app can
+ * run in a browser with no server. tests/engine.test.mjs checks it against the
+ * Python engine on the same recording.
+ */
+(function (root) {
+  "use strict";
+
+  // ------------------------------------------------------------------ helpers
+  /** Python/numpy round(): half to even. */
+  function rhe(x) {
+    const f = Math.floor(x), d = x - f;
+    if (d > 0.5) return f + 1;
+    if (d < 0.5) return f;
+    return f % 2 === 0 ? f : f + 1;
+  }
+  const round4 = (x) => rhe(x * 1e4) / 1e4;
+  const round1 = (x) => rhe(x * 10) / 10;
+  const clip = (x, lo, hi) => Math.min(hi, Math.max(lo, x));
+  const mod = (a, n) => ((a % n) + n) % n;
+  function median(arr) {
+    if (!arr.length) return NaN;
+    const s = Array.from(arr).sort((a, b) => a - b), m = s.length >> 1;
+    return s.length % 2 ? s[m] : (s[m - 1] + s[m]) / 2;
+  }
+  function percentile(arr, q) {               // numpy "linear"
+    const s = Array.from(arr).sort((a, b) => a - b);
+    if (!s.length) return 0;
+    const pos = (s.length - 1) * q / 100, lo = Math.floor(pos), hi = Math.ceil(pos);
+    return s[lo] + (s[hi] - s[lo]) * (pos - lo);
+  }
+  /** scipy.ndimage.median_filter(x, size) with its default "reflect" edges. */
+  function medfilt(x, size) {
+    const n = x.length, h = size >> 1, out = new Float64Array(n), win = new Float64Array(size);
+    const at = (i) => (i < 0 ? x[-i - 1] : i >= n ? x[2 * n - i - 1] : x[i]);
+    for (let i = 0; i < n; i++) {
+      for (let k = 0; k < size; k++) win[k] = at(i - h + k);
+      win.sort();
+      out[i] = win[h];
+    }
+    return out;
+  }
+  const sum = (a) => a.reduce((s, v) => s + v, 0);
+
+  /** Seeded RNG with the numpy Generator calls the arranger uses (not the same stream as numpy). */
+  function makeRng(seed) {
+    let s = (seed >>> 0) ^ 0x9e3779b9;
+    const next = () => {
+      s = (s + 0x6d2b79f5) >>> 0;
+      let t = s;
+      t = Math.imul(t ^ (t >>> 15), t | 1);
+      t ^= t + Math.imul(t ^ (t >>> 7), t | 61);
+      return ((t ^ (t >>> 14)) >>> 0) / 4294967296;
+    };
+    let spare = null;
+    return {
+      random: next,
+      integers: (lo, hi) => lo + Math.floor(next() * (hi - lo)),
+      choice: (arr) => arr[Math.floor(next() * arr.length)],
+      normal: (mu, sd) => {
+        if (spare === null) {
+          let u = 0, v = 0;
+          while (u === 0) u = next();
+          v = next();
+          const r = Math.sqrt(-2 * Math.log(u));
+          spare = r * Math.sin(2 * Math.PI * v);
+          return mu + sd * r * Math.cos(2 * Math.PI * v);
+        }
+        const z = spare; spare = null;
+        return mu + sd * z;
+      },
+    };
+  }
+  const randomSeed = () => Math.floor(Math.random() * 2147483647);
+
+  /** Windowed-sinc resampler (anti-aliased when downsampling). */
+  function resample(x, srIn, srOut) {
+    if (srIn === srOut) return Float32Array.from(x);
+    const ratio = srOut / srIn, n = Math.floor(x.length * ratio), out = new Float32Array(n);
+    const cutoff = Math.min(1, ratio) * 0.95, half = Math.ceil(16 / Math.min(1, ratio));
+    for (let i = 0; i < n; i++) {
+      const c = i / ratio, c0 = Math.floor(c);
+      let acc = 0, wsum = 0;
+      for (let k = c0 - half + 1; k <= c0 + half; k++) {
+        if (k < 0 || k >= x.length) continue;
+        const d = k - c, a = Math.PI * d * cutoff;
+        const sinc = a === 0 ? 1 : Math.sin(a) / a;
+        const w = 0.5 + 0.5 * Math.cos(Math.PI * d / (half + 1));      // Hann window
+        acc += x[k] * sinc * w; wsum += sinc * w;
+      }
+      out[i] = wsum ? acc / wsum : 0;
+    }
+    return out;
+  }
+
+  // -------------------------------------------------------------- pitch.py
+  const ANALYSIS_SR = 16000, HOP = 160, FRAME = 1024;
+
+  function yinTrack(input, sr, fmin = 70, fmax = 1100, threshold = 0.15) {
+    let x = resample(input, sr, ANALYSIS_SR);
+    if (x.length) { const m = sum(x) / x.length; x = x.map((v) => v - m); }
+    sr = ANALYSIS_SR;
+    const tauMin = Math.trunc(sr / fmax), tauMax = Math.trunc(sr / fmin), W = FRAME - tauMax;
+    if (x.length < FRAME) { const p = new Float32Array(FRAME); p.set(x); x = p; }
+    const nFrames = 1 + Math.floor((x.length - FRAME) / HOP);
+    const f0 = new Float64Array(nFrames), conf = new Float64Array(nFrames), rms = new Float64Array(nFrames);
+    const d = new Float64Array(tauMax + 1), cmnd = new Float64Array(tauMax + 1);
+    for (let i = 0; i < nFrames; i++) {
+      const o = i * HOP;
+      let e = 0;
+      for (let j = 0; j < FRAME; j++) e += x[o + j] * x[o + j];
+      rms[i] = Math.sqrt(e / FRAME);
+      for (let tau = 0; tau <= tauMax; tau++) {
+        let s = 0;
+        for (let j = 0; j < W; j++) { const v = x[o + j] - x[o + j + tau]; s += v * v; }
+        d[tau] = s;
+      }
+      cmnd[0] = 1;
+      let running = 0;
+      for (let tau = 1; tau <= tauMax; tau++) { running += d[tau]; cmnd[tau] = d[tau] * tau / Math.max(running, 1e-12); }
+      let t = -1;
+      for (let k = tauMin; k < tauMax; k++) if (cmnd[k] < threshold) { t = k; break; }
+      if (t >= 0) { while (t + 1 < tauMax && cmnd[t + 1] < cmnd[t]) t++; }
+      else {
+        let best = tauMin;
+        for (let k = tauMin; k < tauMax; k++) if (cmnd[k] < cmnd[best]) best = k;
+        if (cmnd[best] > 0.35) continue;
+        t = best;
+      }
+      const tau = t;
+      let shift = 0;
+      if (tau >= 1 && tau < tauMax) {
+        const a = cmnd[tau - 1], b = cmnd[tau], c = cmnd[tau + 1], den = a - 2 * b + c;
+        shift = Math.abs(den) > 1e-12 ? 0.5 * (a - c) / den : 0;
+      }
+      f0[i] = sr / (tau + shift);
+      conf[i] = 1 - Math.min(cmnd[tau], 1);
+    }
+    const gate = Math.max(percentile(rms, 95) * 0.06, 1e-4);
+    for (let i = 0; i < nFrames; i++) if (rms[i] < gate) { f0[i] = 0; conf[i] = 0; }
+    const times = Float64Array.from({ length: nFrames }, (_, i) => (i * HOP + FRAME / 2) / sr);
+    return { times, f0, conf, rms };
+  }
+
+  const hzToMidi = (f) => 69 + 12 * Math.log2(Math.max(f, 1e-9) / 440);
+
+  function segmentNotes(track, minDur = 0.07) {
+    const n = track.f0.length;
+    const voiced = Array.from(track.f0, (f) => f > 0);
+    const midi = Float64Array.from(track.f0, (f, i) => (voiced[i] ? hzToMidi(f) : NaN));
+    const nan0 = (a) => Float64Array.from(a, (v) => (Number.isNaN(v) ? 0 : v));
+    const med = medfilt(nan0(midi), 9);
+    for (let i = 0; i < n; i++) {
+      if (voiced[i] && Math.abs(Math.abs(midi[i] - med[i]) - 12) < 1) midi[i] += midi[i] > med[i] ? -12 : 12;
+    }
+    const sm = medfilt(nan0(midi), 5);
+    const smooth = Float64Array.from(sm, (v, i) => (voiced[i] ? v : NaN));
+    const rmsDb = Float64Array.from(track.rms, (r) => 20 * Math.log10(Math.max(r, 1e-6)));
+    const hopT = HOP / ANALYSIS_SR;
+    const notes = [];
+    let cur = [];
+    const flush = () => {
+      if (!cur.length) return;
+      const start = track.times[cur[0]] - hopT / 2, end = track.times[cur[cur.length - 1]] + hopT / 2;
+      if (end - start >= minDur) {
+        const vals = cur.map((i) => smooth[i]), L = vals.length;
+        const a = Math.floor(L / 5), b = Math.max(Math.floor(L / 5) + 1, L - Math.floor(L / 6));
+        const pitch = median(vals.slice(a, b));
+        const loud = Math.max(...cur.map((i) => rmsDb[i]));
+        const vel = Math.trunc(clip(60 + (loud + 30) * 1.6, 40, 120));
+        notes.push({ start, end, pitch, velocity: vel });
+      }
+      cur = [];
+    };
+    let pending = 0;
+    for (let i = 0; i < n; i++) {
+      if (!voiced[i]) { flush(); pending = 0; continue; }
+      if (!cur.length) { cur.push(i); continue; }
+      const ref = median(cur.slice(-8).map((k) => smooth[k]));
+      const onset = i >= 3 && rmsDb[i] - rmsDb[i - 3] > 7 && cur.length > 6;
+      pending = Math.abs(smooth[i] - ref) > 0.7 ? pending + 1 : 0;
+      if (pending >= 4) {
+        const moved = cur.slice(-3);
+        cur = cur.slice(0, -3);
+        flush();
+        cur = moved;
+        pending = 0;
+      } else if (onset) flush();
+      cur.push(i);
+    }
+    flush();
+    const merged = [];
+    for (const nt of notes) {
+      const last = merged[merged.length - 1];
+      if (last && nt.start - last.end < 0.05 && Math.abs(nt.pitch - last.pitch) < 0.5) last.end = nt.end;
+      else merged.push(nt);
+    }
+    return merged;
+  }
+
+  // ----------------------------------------------------------- analysis.py
+  const NOTE_NAMES = ["C", "C#", "D", "Eb", "E", "F", "F#", "G", "Ab", "A", "Bb", "B"];
+  const MAJOR = [0, 2, 4, 5, 7, 9, 11], MINOR = [0, 2, 3, 5, 7, 8, 10];
+  const KK_MAJOR = [6.35, 2.23, 3.48, 2.33, 4.38, 4.09, 2.52, 5.19, 2.39, 3.66, 2.29, 2.88];
+  const KK_MINOR = [6.33, 2.68, 3.52, 5.38, 2.60, 3.53, 2.54, 4.75, 3.98, 2.69, 3.34, 3.17];
+  const scaleOf = (key) => (key.mode === "major" ? MAJOR : MINOR).map((s) => (key.tonic + s) % 12);
+
+  function estimateTuning(notes) {
+    if (!notes.length) return 0;
+    let sx = 0, cx = 0;
+    for (const nt of notes) {
+      const dev = nt.pitch - rhe(nt.pitch), w = nt.end - nt.start, ang = dev * 2 * Math.PI;
+      sx += w * Math.sin(ang); cx += w * Math.cos(ang);
+    }
+    return Math.atan2(sx, cx) / (2 * Math.PI);
+  }
+
+  function pearson(a, b) {
+    const ma = sum(a) / a.length, mb = sum(b) / b.length;
+    let num = 0, da = 0, db = 0;
+    for (let i = 0; i < a.length; i++) { num += (a[i] - ma) * (b[i] - mb); da += (a[i] - ma) ** 2; db += (b[i] - mb) ** 2; }
+    return num / Math.sqrt(da * db);
+  }
+
+  function detectKey(notes, tuning = 0) {
+    const hist = new Array(12).fill(0);
+    for (const nt of notes) hist[mod(rhe(nt.pitch - tuning), 12)] += (nt.end - nt.start) * (nt.velocity / 100);
+    const total = sum(hist);
+    if (total === 0) return { tonic: 0, mode: "major", confidence: 0 };
+    hist[mod(rhe(notes[notes.length - 1].pitch - tuning), 12)] += 0.25 * total / notes.length;
+    const total2 = sum(hist);
+    hist[mod(rhe(notes[0].pitch - tuning), 12)] += 0.1 * total2 / notes.length;
+    const scores = [];
+    for (let tonic = 0; tonic < 12; tonic++) {
+      for (const [mode, prof] of [["major", KK_MAJOR], ["minor", KK_MINOR]]) {
+        const rolled = prof.map((_, i) => prof[mod(i - tonic, 12)]);
+        scores.push([pearson(hist, rolled), tonic, mode]);
+      }
+    }
+    // Python sorts tuples descending: by score, then tonic, then mode name.
+    scores.sort((x, y) => (y[0] - x[0]) || (y[1] - x[1]) || (y[2] > x[2] ? 1 : y[2] < x[2] ? -1 : 0));
+    const [best, second] = scores;
+    return { tonic: best[1], mode: best[2], confidence: clip((best[0] - second[0]) * 4 + best[0] * 0.5, 0, 1) };
+  }
+
+  function detectTempo(notes, lo = 60, hi = 180) {
+    if (notes.length < 3) return 100;
+    const onsets = notes.map((nt) => nt.start - notes[0].start);
+    const durs = notes.map((nt) => nt.end - nt.start);
+    const iois = onsets.slice(1).map((v, i) => v - onsets[i]);
+    const medIoiSec = iois.length ? median(iois) : null;
+    let bestBpm = 100, bestScore = -Infinity;
+    for (let k = 0; lo + k * 0.5 <= hi + 1e-9; k++) {
+      const bpm = lo + k * 0.5, step = 60 / bpm / 4;
+      let bestPhase = -Infinity;
+      for (let p = 0; p < 8; p++) {
+        const phase = p * step / 8;
+        let s = 0;
+        for (const on of onsets) {
+          const pos = (on + phase) / step, g = rhe(pos), err = Math.abs(pos - g);
+          const w = g % 4 === 0 ? 1 : g % 2 === 0 ? 0.85 : 0.4;
+          s += Math.exp(-((err / 0.12) ** 2)) * w;
+        }
+        bestPhase = Math.max(bestPhase, s);
+      }
+      const tooShort = durs.filter((d) => d < step * 0.6).length / durs.length;
+      const prior = Math.exp(-(Math.log2(bpm / 105) ** 2) / 0.5);
+      const medIoi = medIoiSec !== null ? medIoiSec / (60 / bpm) : 1;
+      const density = 0.25 * Math.log2(medIoi / 0.8) ** 2;
+      const score = bestPhase / onsets.length * (0.7 + 0.3 * prior) - tooShort * 0.5 - density;
+      if (score > bestScore) { bestBpm = bpm; bestScore = score; }
+    }
+    return bestBpm;
+  }
+
+  function correctPitch(p, key, strength = 0.6) {
+    const r = rhe(p), sc = scaleOf(key);
+    if (sc.includes(mod(r, 12))) return r;
+    const cands = [r - 1, r + 1].filter((c) => sc.includes(mod(c, 12)));
+    let c = cands[0];
+    for (const x of cands) if (Math.abs(x - p) < Math.abs(c - p)) c = x;
+    const lean = Math.abs(p - r);
+    if (Math.abs(c - p) < 0.5 + 0.5 * strength || lean > 0.3 * (1 - strength) + 0.15) return c;
+    return r;
+  }
+
+  const BAR_SIZES = [1, 2, 4, 8, 12, 16, 32];
+  function barsFor(endBeats) {
+    const bars = Math.max(1, Math.ceil(endBeats / 4 - 1e-6));
+    const b = BAR_SIZES.find((x) => x >= bars);
+    return b !== undefined ? b : Math.ceil(bars / 4) * 4;
+  }
+
+  function quantize(notes, bpm, key, tuning, correction = 0.6, grid = 0.25) {
+    if (!notes.length) return [[], 1];
+    const spb = 60 / bpm, t0 = notes[0].start, out = [];
+    for (const nt of notes) {
+      let s = rhe((nt.start - t0) / spb / grid) * grid, e = rhe((nt.end - t0) / spb / grid) * grid;
+      if (e <= s) e = s + grid;
+      const p = correctPitch(nt.pitch - tuning, key, correction);
+      const prev = out[out.length - 1];
+      if (prev && s < prev.start + prev.dur) {
+        if (s <= prev.start) { s = prev.start + grid; e = Math.max(e, s + grid); }
+        prev.dur = s - prev.start;
+      }
+      out.push({ pitch: p, start: s, dur: e - s, velocity: nt.velocity, sung_pitch: nt.pitch - tuning });
+    }
+    for (let i = 0; i + 1 < out.length; i++) {
+      const gap = out[i + 1].start - (out[i].start + out[i].dur);
+      if (gap > 0 && gap <= 0.5) out[i].dur += gap;
+    }
+    const last = out[out.length - 1];
+    return [out, barsFor(last.start + last.dur)];
+  }
+
+  /** Same shape as Python Melody.to_dict(). */
+  function analyse(raw, correction = 0.6) {
+    const tuning = estimateTuning(raw), key = detectKey(raw, tuning), bpm = detectTempo(raw);
+    const [notes, bars] = quantize(raw, bpm, key, tuning, correction);
+    let meta = {};
+    if (notes.length) {
+      const centre = median(notes.map((nt) => nt.pitch));
+      let shift = 0;
+      while (centre + shift < 62) shift += 12;
+      while (centre + shift > 79) shift -= 12;
+      for (const nt of notes) { nt.pitch += shift; nt.sung_pitch += shift; }
+      meta = { octave_shift: shift, raw_note_count: raw.length };
+    }
+    return {
+      notes: notes.map((nt) => ({ pitch: nt.pitch, start: nt.start, dur: nt.dur, velocity: nt.velocity, sung_pitch: rhe(nt.sung_pitch * 100) / 100 })),
+      key: { tonic: key.tonic, mode: key.mode, name: `${NOTE_NAMES[key.tonic]} ${key.mode}`, confidence: rhe(key.confidence * 1000) / 1000 },
+      bpm: round1(bpm), bars, time_sig: [4, 4], tuning_offset_cents: round1(tuning * 100), meta,
+    };
+  }
+
+  /** Recording (mono float samples) -> analysis, like pipeline.transcribe_take. */
+  function transcribe(samples, sr, correction = 0.6) {
+    const t0 = Date.now();
+    const track = yinTrack(samples, sr);
+    const raw = segmentNotes(track);
+    const melody = analyse(raw, correction);
+    const step = Math.max(1, Math.floor(track.times.length / 600));
+    const contour = [];
+    for (let i = 0; i < track.times.length; i += step)
+      contour.push([rhe(track.times[i] * 1000) / 1000, track.f0[i] > 0 ? rhe(hzToMidi(track.f0[i]) * 100) / 100 : null]);
+    return { melody, raw_notes: raw, pitch_contour: contour, duration_sec: rhe(samples.length / sr * 100) / 100, processing_ms: Date.now() - t0 };
+  }
+
+  // -------------------------------------------------------------- style.py
+  const GENRES = {
+    synthwave: { bpm: 96, kit: "80s", bass: "pump8", chords: "pad", lead: "saw_lead", arp: true, ext: "add9", swing: 0, sidechain: 0.35, reverb: 0.35, brightness: 0.6 },
+    pop: { bpm: 110, kit: "pop", bass: "pop", chords: "piano", lead: "pluck_lead", arp: false, ext: "triad", swing: 0, sidechain: 0.15, reverb: 0.25, brightness: 0.6 },
+    edm: { bpm: 126, kit: "house", bass: "offbeat", chords: "supersaw", lead: "supersaw_lead", arp: true, ext: "triad", swing: 0, sidechain: 0.6, reverb: 0.3, brightness: 0.8 },
+    trap: { bpm: 140, kit: "trap", bass: "808", chords: "bells", lead: "bell_lead", arp: false, ext: "min7", swing: 0, sidechain: 0, reverb: 0.3, brightness: 0.5 },
+    hiphop: { bpm: 90, kit: "boombap", bass: "root", chords: "epiano", lead: "epiano_lead", arp: false, ext: "7th", swing: 0.12, sidechain: 0, reverb: 0.2, brightness: 0.45 },
+    lofi: { bpm: 78, kit: "lofi", bass: "root5", chords: "epiano", lead: "epiano_lead", arp: false, ext: "9th", swing: 0.18, sidechain: 0.1, reverb: 0.3, brightness: 0.3 },
+    rock: { bpm: 120, kit: "rock", bass: "eighths", chords: "guitar", lead: "guitar_lead", arp: false, ext: "power", swing: 0, sidechain: 0, reverb: 0.2, brightness: 0.7 },
+    cinematic: { bpm: 84, kit: "taiko", bass: "sustain", chords: "strings", lead: "strings_lead", arp: true, ext: "sus", swing: 0, sidechain: 0, reverb: 0.6, brightness: 0.45 },
+    ambient: { bpm: 72, kit: "none", bass: "sustain", chords: "pad", lead: "bell_lead", arp: true, ext: "add9", swing: 0, sidechain: 0, reverb: 0.7, brightness: 0.35 },
+    rnb: { bpm: 88, kit: "rnb", bass: "root5", chords: "epiano", lead: "epiano_lead", arp: false, ext: "9th", swing: 0.1, sidechain: 0, reverb: 0.3, brightness: 0.45 },
+    house: { bpm: 124, kit: "house", bass: "offbeat", chords: "piano", lead: "pluck_lead", arp: false, ext: "7th", swing: 0.05, sidechain: 0.5, reverb: 0.25, brightness: 0.7 },
+    folk: { bpm: 100, kit: "folk", bass: "root5", chords: "guitar_ac", lead: "flute_lead", arp: true, ext: "triad", swing: 0, sidechain: 0, reverb: 0.3, brightness: 0.5 },
+  };
+  const GENRE_WORDS = [
+    ["synthwave", ["synthwave", "retrowave", "outrun", "80s synth", "vaporwave", "synth pop", "synthpop"]],
+    ["edm", ["edm", "electro", "big room", "trance", "future bass", "dance", "festival", "dubstep"]],
+    ["house", ["house", "deep house", "disco", "nu disco", "techno"]],
+    ["trap", ["trap", "drill", "808"]],
+    ["hiphop", ["hip hop", "hip-hop", "hiphop", "boom bap", "rap"]],
+    ["lofi", ["lofi", "lo-fi", "lo fi", "chillhop", "study beats"]],
+    ["rock", ["rock", "punk", "grunge", "indie rock", "metal", "alt rock"]],
+    ["cinematic", ["cinematic", "trailer", "orchestra", "orchestral", "epic", "film score", "soundtrack", "score", "taiko", "hans zimmer"]],
+    ["ambient", ["ambient", "drone", "meditation", "atmospheric", "chillout"]],
+    ["rnb", ["r&b", "rnb", "neo soul", "soul"]],
+    ["folk", ["folk", "acoustic", "country", "singer-songwriter"]],
+    ["pop", ["pop", "radio", "ballad"]],
+  ];
+  const REFERENCES = [["the weeknd", "synthwave"], ["kavinsky", "synthwave"], ["daft punk", "house"], ["m83", "synthwave"],
+    ["avicii", "edm"], ["calvin harris", "edm"], ["martin garrix", "edm"], ["skrillex", "edm"], ["travis scott", "trap"],
+    ["metro boomin", "trap"], ["drake", "rnb"], ["frank ocean", "rnb"], ["nujabes", "lofi"], ["j dilla", "hiphop"],
+    ["zimmer", "cinematic"], ["two steps from hell", "cinematic"], ["brian eno", "ambient"], ["taylor swift", "pop"],
+    ["dua lipa", "pop"], ["billie eilish", "pop"], ["arctic monkeys", "rock"], ["foo fighters", "rock"], ["mumford", "folk"], ["bon iver", "folk"]];
+  const MOODS = [
+    ["dark", ["dark", "sinister", "ominous", "menacing", "brooding", "moody", "gritty"]],
+    ["sad", ["sad", "melancholic", "melancholy", "heartbreak", "emotional", "nostalgic", "bittersweet"]],
+    ["happy", ["happy", "uplifting", "joyful", "bright", "sunny", "feel good", "euphoric", "upbeat"]],
+    ["dreamy", ["dreamy", "ethereal", "floaty", "hazy", "lush", "warm"]],
+    ["epic", ["epic", "heroic", "powerful", "massive", "huge", "anthemic", "trailer"]],
+    ["chill", ["chill", "relaxed", "calm", "mellow", "laid back", "laid-back", "soft"]],
+    ["aggressive", ["aggressive", "hard", "heavy", "angry", "intense"]],
+  ];
+  const INSTRUMENTS = [
+    ["piano", "chords", "piano"], ["keys", "chords", "epiano"], ["rhodes", "chords", "epiano"], ["e-piano", "chords", "epiano"],
+    ["strings", "chords", "strings"], ["orchestra", "chords", "strings"], ["pad", "chords", "pad"], ["pads", "chords", "pad"],
+    ["guitar", "chords", "guitar"], ["acoustic guitar", "chords", "guitar_ac"], ["organ", "chords", "organ"],
+    ["choir", "extra", "choir"], ["brass", "extra", "brass"], ["horns", "extra", "brass"], ["bells", "extra", "bells"],
+    ["music box", "extra", "bells"], ["arp", "extra", "arp"], ["arpeggio", "extra", "arp"], ["flute", "lead", "flute_lead"],
+    ["violin", "lead", "strings_lead"], ["sax", "lead", "sax_lead"], ["saxophone", "lead", "sax_lead"],
+    ["lead synth", "lead", "saw_lead"], ["synth lead", "lead", "saw_lead"], ["taiko", "drums", "taiko"], ["808", "bass", "808"],
+    ["synth bass", "bass", "pump8"], ["no drums", "drums", "none"], ["without drums", "drums", "none"], ["80s drums", "drums", "80s"],
+    ["gated", "drums", "80s"], ["live drums", "drums", "rock"], ["breakbeat", "drums", "boombap"], ["four on the floor", "drums", "house"],
+  ];
+  const isWordChar = (c) => c !== undefined && /[a-z0-9]/.test(c);
+  /** First index of `w` in `t` not glued to other letters/digits (Python's (?<![a-z0-9])w(?![a-z0-9])). */
+  function findWord(t, w) {
+    let i = t.indexOf(w);
+    while (i >= 0) {
+      if (!isWordChar(t[i - 1]) && !isWordChar(t[i + w.length])) return i;
+      i = t.indexOf(w, i + 1);
+    }
+    return -1;
+  }
+  const has = (t, w) => findWord(t, w) >= 0;
+
+  function parseStyle(text) {
+    const t = (text || "").toLowerCase().trim();
+    const scores = new Map();
+    for (const [g, words] of GENRE_WORDS) for (const w of words) {
+      const i = findWord(t, w);
+      if (i >= 0) scores.set(g, (scores.get(g) || 0) + 2 + w.length / 10 - i / Math.max(t.length, 1));
+    }
+    const refs = REFERENCES.filter(([r]) => t.includes(r)).map(([r]) => r);
+    for (const [r, g] of REFERENCES) if (t.includes(r)) scores.set(g, (scores.get(g) || 0) + 1.5);
+    const ranked = [...scores.keys()].sort((a, b) => scores.get(b) - scores.get(a));
+    const genre = ranked[0] || "pop";
+    const base = GENRES[genre];
+    const spec = { text: text || "", genre, secondary: ranked[1] || null, bpm: null, mood: [], kit: base.kit, bass: base.bass,
+      chords: base.chords, lead: base.lead, extras: [], arp: base.arp, ext: base.ext, swing: base.swing, sidechain: base.sidechain,
+      reverb: base.reverb, brightness: base.brightness, vocal_feel: null, references: refs, prefer_minor: null, key_override: null };
+    const m = t.match(/(\d{2,3})\s*(bpm|beats)/);
+    if (m) spec.bpm = Math.min(Math.max(parseInt(m[1], 10), 50), 200);
+    else if (["slow", "downtempo", "half time", "half-time"].some((w) => has(t, w))) spec.bpm = base.bpm * 0.85;
+    else if (["fast", "uptempo", "energetic", "driving"].some((w) => has(t, w))) spec.bpm = base.bpm * 1.12;
+    for (const [mood, words] of MOODS) if (words.some((w) => has(t, w))) spec.mood.push(mood);
+    if (spec.mood.includes("dark") || spec.mood.includes("sad")) { spec.prefer_minor = true; spec.brightness *= 0.8; }
+    else if (spec.mood.includes("happy") || (!spec.mood.includes("epic") && t.includes("uplifting"))) {
+      spec.prefer_minor = false; spec.brightness = Math.min(1, spec.brightness * 1.15);
+    }
+    if (spec.mood.includes("dreamy") || spec.mood.includes("epic")) spec.reverb = Math.min(0.8, spec.reverb + 0.15);
+    if (spec.mood.includes("aggressive")) spec.brightness = Math.min(1, spec.brightness + 0.15);
+    let rest = t;
+    const byLen = INSTRUMENTS.map((x, i) => [x, i]).sort((a, b) => (b[0][0].length - a[0][0].length) || (a[1] - b[1])).map((x) => x[0]);
+    for (const [word, slot, value] of byLen) {
+      if (!has(rest, word)) continue;
+      rest = rest.split(word).join(" ");
+      if (slot === "chords") spec.chords = value;
+      else if (slot === "lead") spec.lead = value;
+      else if (slot === "drums") spec.kit = value;
+      else if (slot === "bass") spec.bass = value;
+      else if (value === "arp") spec.arp = true;
+      else if (!spec.extras.includes(value)) spec.extras.push(value);
+    }
+    if (spec.chords === "guitar" && (genre === "folk" || has(t, "acoustic"))) spec.chords = "guitar_ac";
+    if (genre === "cinematic" && !spec.extras.includes("brass") && spec.mood.includes("epic")) spec.extras.push("brass");
+    if (genre === "cinematic" && !spec.extras.includes("choir") && (spec.mood.includes("dark") || spec.mood.includes("epic"))) spec.extras.push("choir");
+    if (/female|woman|girl|soprano/.test(t)) spec.vocal_feel = "female";
+    else if (/\bmale\b|\bman\b|baritone|\bguy\b/.test(t)) spec.vocal_feel = "male";
+    const km = t.match(/\bin ([a-g])(#|b)?\s*(major|minor|maj|min|m)\b/);
+    if (km) spec.key_override = km[1].toUpperCase() + (km[2] || "") + " " + (km[3] === "major" || km[3] === "maj" ? "major" : "minor");
+    return spec;
+  }
+
+  // ------------------------------------------------------------- theory.py
+  const QUALITY_TONES = { maj: [0, 4, 7], min: [0, 3, 7], dim: [0, 3, 6] };
+  const MAJOR_CHORDS = { I: [0, "maj"], ii: [2, "min"], iii: [4, "min"], IV: [5, "maj"], V: [7, "maj"], vi: [9, "min"],
+    "vii°": [11, "dim"], bVII: [10, "maj"], bVI: [8, "maj"], iv: [5, "min"], bIII: [3, "maj"], II: [2, "maj"] };
+  const MINOR_CHORDS = { i: [0, "min"], "ii°": [2, "dim"], III: [3, "maj"], iv: [5, "min"], v: [7, "min"], V: [7, "maj"],
+    VI: [8, "maj"], VII: [10, "maj"], IV: [5, "maj"], bII: [1, "maj"] };
+  const HARMONY_PRIOR = {
+    major: [["I", 0.5], ["IV", 0.45], ["V", 0.45], ["vi", 0.4], ["ii", 0.2], ["iii", 0.08]],
+    minor: [["i", 0.5], ["VI", 0.45], ["VII", 0.4], ["iv", 0.4], ["III", 0.3], ["V", 0.2], ["v", 0.12]],
+  };
+  const GOOD_MOVES = {
+    major: new Set(["I>IV", "I>V", "I>vi", "IV>V", "IV>I", "V>I", "V>vi", "vi>IV", "vi>ii", "ii>V", "iii>vi", "vi>V", "IV>vi", "ii>IV"]),
+    minor: new Set(["i>VI", "i>iv", "i>VII", "VI>VII", "VII>i", "iv>V", "V>i", "VI>III", "III>VII", "iv>i", "VII>III", "iv>VII", "VI>iv", "i>III"]),
+  };
+  const chordTable = (key) => (key.mode === "major" ? MAJOR_CHORDS : MINOR_CHORDS);
+  const tonicLabel = (key) => (key.mode === "major" ? "I" : "i");
+
+  function chordFromLabel(label, key, start, dur, ext = "triad") {
+    const [off, q] = chordTable(key)[label];
+    const root = (key.tonic + off) % 12;
+    let tones = QUALITY_TONES[q].slice();
+    const sc = new Set(scaleOf(key));
+    let suffix = q === "maj" ? "" : q === "min" ? "m" : "dim";
+    const inScale = (iv) => sc.has((root + iv) % 12);
+    if (["7th", "min7", "9th"].includes(ext) && q !== "dim") {
+      if (!(ext === "min7" && q === "maj" && !["V", "bVII", "VII"].includes(label))) {
+        const sev = inScale(11) && q === "maj" ? 11 : 10;
+        tones.push(sev);
+        suffix += sev === 11 ? "maj7" : "7";
+      }
+    }
+    if (ext === "9th" && q !== "dim" && inScale(2)) { tones.push(14); suffix = suffix.includes("7") ? suffix.replace("7", "9") : suffix + "add9"; }
+    if (ext === "add9" && inScale(2)) { tones.push(14); suffix += "add9"; }
+    if (ext === "sus" && q !== "dim") {
+      if (label === "V" && inScale(5)) { tones[1] = 5; suffix = "sus4"; }
+      else if (inScale(2)) { tones[1] = 2; suffix = "sus2"; }
+    }
+    if (ext === "power") { tones = [0, 7, 12]; suffix = "5"; }
+    return { label, root, quality: q, tones, symbol: NOTE_NAMES[root] + suffix, start, dur };
+  }
+  const chordPcs = (ch) => new Set(QUALITY_TONES[ch.quality].map((t) => (ch.root + t) % 12));
+  const scaleNotesCache = new Map();
+  function scaleNotes(key) {
+    const k = key.tonic + key.mode;
+    if (!scaleNotesCache.has(k)) { const s = new Set(scaleOf(key)); scaleNotesCache.set(k, [...Array(128).keys()].filter((m) => s.has(m % 12))); }
+    return scaleNotesCache.get(k);
+  }
+  function nearestIdx(notes, p) {
+    let lo = 0, hi = notes.length;
+    while (lo < hi) { const m = (lo + hi) >> 1; if (notes[m] < p) lo = m + 1; else hi = m; }
+    const i = lo;
+    if (i === 0) return 0;
+    if (i >= notes.length) return notes.length - 1;
+    return notes[i] - p < p - notes[i - 1] ? i : i - 1;
+  }
+  function dshift(p, steps, key) { const sn = scaleNotes(key); return sn[clip(nearestIdx(sn, p) + steps, 0, sn.length - 1)]; }
+  function snapScale(p, key) { const sn = scaleNotes(key); return sn[nearestIdx(sn, p)]; }
+  function snapChord(p, pcs, preferDown = true) {
+    let best = rhe(p), bd = 99;
+    for (let c = Math.trunc(p) - 6; c < Math.trunc(p) + 7; c++) {
+      if (pcs.has(mod(c, 12))) {
+        const d = Math.abs(c - p) + (c > p && preferDown ? 0.01 : 0);
+        if (d < bd) { best = c; bd = d; }
+      }
+    }
+    return best;
+  }
+  function voiceChord(ch, prev, lo = 52, hi = 74) {
+    const base = ch.tones.map((t) => ch.root + t), cands = [];
+    for (let octave = 3; octave < 7; octave++) for (let inv = 0; inv < base.length; inv++) {
+      const v = base.map((b, i) => b + 12 * octave + (i < inv ? 12 : 0)).sort((a, b) => a - b);
+      if (v[0] >= lo && v[v.length - 1] <= hi + 7) cands.push(v);
+    }
+    if (!cands.length) return ch.tones.map((t) => ch.root + 48 + t);
+    const avg = (v) => sum(v) / v.length;
+    const cost = prev === null || prev === undefined
+      ? (v) => Math.abs(avg(v) - (lo + hi) / 2)
+      : (v) => Math.abs(avg(v) - avg(prev)) + 0.1 * Math.abs(v[0] - prev[0]);
+    let best = cands[0];
+    for (const v of cands) if (cost(v) < cost(best)) best = v;
+    return best;
+  }
+  function bassRoot(ch, lo = 31) { let p = ch.root; while (p < lo) p += 12; return p; }
+
+  // ----------------------------------------------------------- arranger.py
+  const STRUCTURE = [["intro", "Intro", 4, 0.2], ["verse1", "Verse 1", 8, 0.45], ["prechorus", "Pre-Chorus", 4, 0.65],
+    ["chorus1", "Chorus", null, 0.85], ["verse2", "Verse 2", 8, 0.55], ["chorus2", "Chorus", null, 0.9],
+    ["bridge", "Bridge", 8, 0.5], ["final_chorus", "Final Chorus", null, 1.0], ["outro", "Outro", 4, 0.3]];
+  const PRE_TEMPLATES = {
+    major: [["IV", "V", "vi", "V"], ["ii", "iii", "IV", "V"], ["vi", "IV", "ii", "V"], ["IV", "IV", "V", "V"]],
+    minor: [["VI", "VII", "i", "VII"], ["iv", "VI", "VII", "VII"], ["VI", "iv", "VII", "V"], ["iv", "iv", "VII", "V"]],
+  };
+  const BRIDGE_TEMPLATES = {
+    major: [["vi", "IV", "I", "V", "vi", "IV", "bVII", "V"], ["IV", "V", "iii", "vi", "ii", "V", "bVI", "V"],
+      ["ii", "IV", "vi", "V", "ii", "IV", "bVII", "bVII"], ["bVI", "bVII", "I", "I", "bVI", "bVII", "IV", "V"]],
+    minor: [["VI", "VII", "III", "i", "VI", "VII", "iv", "V"], ["iv", "i", "VI", "III", "iv", "VI", "VII", "V"],
+      ["III", "VII", "iv", "i", "VI", "III", "IV", "V"], ["VI", "III", "VII", "i", "iv", "VI", "bII", "V"]],
+  };
+
+  const N = (p, s, d, v = 96) => ({ pitch: Math.trunc(p), start: round4(s), dur: round4(Math.max(d, 0.05)), vel: Math.trunc(clip(v, 1, 127)) });
+  const melodyEvents = (notes) => notes.map((nt) => N(nt.pitch, nt.start, nt.dur, nt.velocity ?? 96));
+  const notesIn = (ev, a, b) => ev.filter((e) => a <= e.start && e.start < b);
+  function repeat(ev, length, times) { const out = []; for (let k = 0; k < times; k++) for (const e of ev) out.push({ ...e, start: e.start + k * length }); return out; }
+  const clipEv = (ev, length) => ev.filter((e) => e.start < length).map((e) => ({ ...e, dur: Math.min(e.dur, length - e.start) }));
+  const arange = (a, b, step) => { const out = []; for (let i = 0; a + i * step < b; i++) out.push(a + i * step); return out; };
+
+  function harmonise(melody, bars, key, spec, rng, chordsPerBar = 1, startPref = null, endLabel = null, temperature = 0, avoid = null) {
+    const prior = HARMONY_PRIOR[key.mode], labels = prior.map((x) => x[0]), moves = GOOD_MOVES[key.mode];
+    const sc = scaleOf(key), seg = 4 / chordsPerBar, nSeg = bars * chordsPerBar;
+    const emis = [];
+    for (let s = 0; s < nSeg; s++) {
+      const a = s * seg, b = (s + 1) * seg, row = [];
+      for (const [lab, pr] of prior) {
+        const pcs = chordPcs(chordFromLabel(lab, key, 0, 0));
+        let score = pr;
+        for (const e of melody) {
+          const ov = Math.min(b, e.start + e.dur) - Math.max(a, e.start);
+          if (ov <= 0) continue;
+          const strong = mod(e.start - a, 2) < 0.01 && e.start >= a ? 1.6 : 1.0;
+          const pc = mod(e.pitch, 12);
+          if (pcs.has(pc)) score += ov * strong;
+          else if (sc.includes(pc)) score += ov * strong * -0.25;
+          else score -= ov * strong * 0.8;
+        }
+        if (avoid && avoid.has(lab)) score -= 0.4;
+        row.push(score + (temperature ? rng.normal(0, temperature) : 0));
+      }
+      emis.push(row);
+    }
+    if (startPref) labels.forEach((lab, j) => { if (startPref.has(lab)) emis[0][j] += 0.8; });
+    if (endLabel) labels.forEach((lab, j) => { if (lab === endLabel) emis[nSeg - 1][j] += 2.5; });
+    const trans = labels.map((a) => labels.map((b) => (moves.has(`${a}>${b}`) ? 0.45 : a === b ? -0.35 : -0.05)));
+    let score = emis[0].slice();
+    const back = [];
+    for (let s = 1; s < nSeg; s++) {
+      const nb = [], ns = [];
+      for (let j = 0; j < labels.length; j++) {
+        let bi = 0, bv = -Infinity;
+        for (let i = 0; i < labels.length; i++) { const v = score[i] + trans[i][j] + emis[s][j]; if (v > bv) { bv = v; bi = i; } }
+        nb.push(bi); ns.push(bv);
+      }
+      back[s] = nb; score = ns;
+    }
+    let j = 0;
+    for (let k = 1; k < score.length; k++) if (score[k] > score[j]) j = k;
+    const path = [j];
+    for (let s = nSeg - 1; s > 0; s--) path.push(back[s][path[path.length - 1]]);
+    return path.reverse().map((k) => labels[k]);
+  }
+
+  function buildChords(labels, key, spec, chordsPerBar = 1) {
+    const seg = 4 / chordsPerBar, merged = [];
+    labels.forEach((lab, i) => {
+      let ext = spec.ext;
+      if (ext === "sus" && i % 2 === 0) ext = "add9";
+      const c = chordFromLabel(lab, key, i * seg, seg, ext), last = merged[merged.length - 1];
+      if (last && last.label === c.label && last.symbol === c.symbol) last.dur += c.dur;
+      else merged.push(c);
+    });
+    return merged;
+  }
+  const chordAt = (chords, t) => chords.find((c) => c.start <= t && t < c.start + c.dur) || chords[chords.length - 1];
+  function fitToChords(ev, chords, key, strength = 1) {
+    const sc = scaleOf(key);
+    return ev.map((e) => {
+      const pcs = chordPcs(chordAt(chords, e.start));
+      const strong = Math.abs(mod(e.start, 2)) < 0.01 || e.dur >= 1.5;
+      let p = e.pitch;
+      if (strong && !pcs.has(mod(p, 12)) && strength > 0) p = snapChord(p, pcs);
+      else if (!sc.includes(mod(p, 12))) p = snapScale(p, key);
+      return { ...e, pitch: Math.trunc(p) };
+    });
+  }
+  function simplifyRhythm(ev, minDur = 0.5) {
+    const out = [];
+    for (const e of ev) {
+      const last = out[out.length - 1];
+      if (last && e.dur < minDur && e.start - (last.start + last.dur) < 0.01 && last.dur < 2) last.dur += e.dur;
+      else out.push({ ...e });
+    }
+    return out;
+  }
+  const shiftEvents = (ev, steps, key) => ev.map((e) => ({ ...e, pitch: dshift(e.pitch, steps, key) }));
+  function invert(ev, key) {
+    if (!ev.length) return [];
+    const sn = scaleNotes(key), axis = nearestIdx(sn, ev[0].pitch);
+    return ev.map((e) => ({ ...e, pitch: sn[clip(2 * axis - nearestIdx(sn, e.pitch), 0, sn.length - 1)] }));
+  }
+  const augment = (ev, f = 2) => ev.map((e) => ({ ...e, start: e.start * f, dur: e.dur * f }));
+  function breathe(ev, phraseLen) {
+    return ev.map((e) => {
+      const end = e.start + e.dur, boundary = (Math.floor(e.start / phraseLen) + 1) * phraseLen;
+      return end > boundary - 0.5 ? { ...e, dur: Math.max(0.25, boundary - 0.5 - e.start) } : e;
+    });
+  }
+  function keepRegister(ev, lo = 57, hi = 81) {
+    if (!ev.length) return ev;
+    const c = median(ev.map((e) => e.pitch));
+    let shift = 0;
+    while (c + shift < lo) shift += 12;
+    while (c + shift > hi) shift -= 12;
+    return ev.map((e) => ({ ...e, pitch: e.pitch + shift }));
+  }
+
+  const DRUM_KITS = {
+    pop: [["kick", [0, 8, 10]], ["snare", [4, 12]], ["hat", arange(0, 16, 2)], ["ohat", [14]]],
+    "80s": [["kick", [0, 8]], ["snare", [4, 12]], ["hat", arange(0, 16, 1)], ["ohat", []]],
+    house: [["kick", [0, 4, 8, 12]], ["clap", [4, 12]], ["hat", arange(1, 16, 2)], ["ohat", [2, 6, 10, 14]]],
+    trap: [["kick", [0, 7, 10]], ["snare", [8]], ["hat", arange(0, 16, 1)], ["ohat", []]],
+    boombap: [["kick", [0, 7, 10]], ["snare", [4, 12]], ["hat", arange(0, 16, 2)], ["ohat", []]],
+    lofi: [["kick", [0, 7, 9]], ["snare", [4, 12]], ["hat", arange(0, 16, 2)], ["ohat", []]],
+    rock: [["kick", [0, 6, 8, 10]], ["snare", [4, 12]], ["hat", arange(0, 16, 2)], ["ohat", []]],
+    rnb: [["kick", [0, 6, 11]], ["snare", [4, 12]], ["hat", arange(0, 16, 1)], ["ohat", []]],
+    folk: [["kick", [0, 8]], ["snare", [4, 12]], ["hat", arange(0, 16, 2)], ["ohat", []]],
+    taiko: [["taiko", [0, 3, 6, 8, 11, 14]], ["taiko_hi", [4, 12]], ["hat", []]],
+    none: [],
+  };
+
+  function makeDrums(spec, bars, energy, rng, name, nextName) {
+    const kit = DRUM_KITS[spec.kit] || DRUM_KITS.pop, ev = [];
+    if (spec.kit === "none") { if (/^(chorus|final)/.test(name)) ev.push({ drum: "boom", start: 0, vel: 110 }); return ev; }
+    const sw = spec.swing;
+    const at = (st) => st / 4 + (st % 4 === 2 ? sw * 0.33 : st % 2 === 1 ? sw * 0.16 : 0);
+    for (let bar = 0; bar < bars; bar++) {
+      const o = bar * 4, last = bar === bars - 1;
+      for (const [inst, steps] of kit) {
+        if (energy < 0.3 && ["kick", "snare", "clap", "taiko", "taiko_hi"].includes(inst)) {
+          if ((inst === "kick" || inst === "taiko") && bar >= Math.floor(bars / 2)) ev.push({ drum: inst, start: o, vel: 90 });
+          continue;
+        }
+        if (energy < 0.5 && inst === "ohat") continue;
+        for (const st of steps) {
+          let vel;
+          if (inst === "hat") {
+            if (energy < 0.5 && st % 4 !== 0) continue;
+            if (energy < 0.7 && steps.length === 16 && st % 2 === 1) continue;
+            vel = 70 + (st % 4 === 0 ? 20 : 0) + rng.integers(-8, 8);
+          } else if (inst === "kick" && energy < 0.5 && st !== 0 && st !== 8) continue;
+          else vel = 105 + rng.integers(-6, 6);
+          ev.push({ drum: inst, start: round4(o + at(st)), vel: Math.trunc(vel) });
+        }
+      }
+      if (spec.kit === "trap" && energy >= 0.6 && bar % 2 === 1)
+        for (let k = 0; k < 6; k++) ev.push({ drum: "hat", start: round4(o + 3 + k / 6), vel: 60 + k * 6 });
+      if (last && nextName && energy >= 0.4) {
+        const fill = spec.kit === "taiko" ? "taiko_hi" : "snare";
+        if (name === "prechorus" || /^(final|chorus)/.test(nextName)) {
+          const n = name === "prechorus" ? 16 : 4;
+          for (let k = 0; k < n; k++) ev.push({ drum: fill, start: round4(o + (4 - n / 4) + k / 4), vel: 60 + Math.trunc(55 * k / n) });
+        } else if (rng.random() < 0.6) {
+          for (let k = 0; k < 4; k++) ev.push({ drum: spec.kit !== "taiko" ? "tom" : "taiko", start: round4(o + 3 + k / 4), vel: 100 - k * 5 });
+        }
+      }
+    }
+    if (/^(chorus|final)/.test(name) || (name === "bridge" && energy > 0.4)) ev.push({ drum: spec.kit !== "taiko" ? "crash" : "boom", start: 0, vel: 110 });
+    if (name === "final_chorus" && spec.kit === "taiko") for (let bar = 0; bar < bars; bar += 2) ev.push({ drum: "boom", start: bar * 4, vel: 115 });
+    return ev.sort((a, b) => a.start - b.start);
+  }
+
+  const BASS_PATTERNS = {
+    pump8: arange(0, 8, 1).map((i) => [i * 0.5, 0.45, i === 7 ? 12 : 0]),
+    offbeat: arange(0, 4, 1).map((i) => [i + 0.5, 0.4, 0]),
+    "808": [[0, 1.6, 0], [1.75, 0.5, 0], [2.5, 1.4, 0]],
+    root: [[0, 1.5, 0], [2.75, 0.5, 0], [3.5, 0.5, 0]],
+    root5: [[0, 1.4, 0], [1.5, 0.5, 7], [2, 1.4, 0], [3.5, 0.5, 7]],
+    eighths: arange(0, 8, 1).map((i) => [i * 0.5, 0.45, 0]),
+    sustain: [[0, 3.9, 0]],
+    pop: [[0, 1.0, 0], [1.5, 0.5, 0], [2, 1.0, 7], [3, 0.5, 0], [3.5, 0.5, 12]],
+  };
+  function makeBass(spec, chords, bars, energy) {
+    if (energy < 0.25) return [];
+    let pat = BASS_PATTERNS[spec.bass] || BASS_PATTERNS.pop;
+    if (energy < 0.5 && spec.bass !== "sustain" && spec.bass !== "808") pat = [[0, 1.9, 0], [2, 1.9, 0]];
+    const ev = [], lo = spec.bass === "808" ? 26 : 31;
+    for (let bar = 0; bar < bars; bar++) for (const [s, d, iv] of pat) {
+      const t = bar * 4 + s, ch = chordAt(chords, t), root = bassRoot(ch, lo);
+      let p = root + iv;
+      if (iv === 7 && !ch.tones.map((x) => (ch.root + x) % 12).includes((ch.root + 7) % 12)) p = root;
+      ev.push(N(p, t, Math.min(d, Math.max(0.1, ch.start + ch.dur - t)), s === 0 ? 100 : 88));
+    }
+    return ev;
+  }
+  function makeChordPart(spec, chords, bars, energy) {
+    const style = spec.chords, ev = [];
+    let prev = null;
+    for (const ch of chords) {
+      const v = voiceChord(ch, prev); prev = v;
+      const s = ch.start, d = ch.dur, vel = Math.trunc(55 + 45 * energy);
+      if (["pad", "strings", "organ"].includes(style) || energy < 0.3) for (const p of v) ev.push(N(p, s, d, vel));
+      else if (style === "piano") {
+        const hits = energy < 0.5 ? [[0, d]] : arange(0, d, 1).map((k) => [k, 1.0]);
+        for (const [o, dd] of hits) {
+          for (const p of v) ev.push(N(p, s + o, dd * 0.95, vel - (o % 2 === 0 ? 0 : 10)));
+          if (energy >= 0.5 && o % 2 === 0) ev.push(N(v[0] - 12, s + o, dd * 0.95, vel - 15));
+        }
+      } else if (style === "epiano") {
+        for (const k of arange(0, d, 4)) for (const [o, dd] of energy >= 0.5 ? [[0, 1.4], [1.5, 1.0], [3.0, 0.9]] : [[0, 3.9]])
+          if (k + o < d) for (const p of v) ev.push(N(p, s + k + o, dd, vel - (o ? 12 : 0)));
+      } else if (style === "guitar" || style === "guitar_ac") {
+        let pattern = energy >= 0.5 ? [[0, 0.95], [1, 0.45], [1.5, 0.45], [2.5, 0.45], [3, 0.95]] : [[0, 1.9], [2, 1.9]];
+        if (spec.ext === "power" && energy >= 0.6) pattern = arange(0, 8, 1).map((i) => [i * 0.5, 0.45]);
+        for (const k of arange(0, d, 4)) for (const [o, dd] of pattern)
+          if (k + o < d) v.forEach((p, i) => ev.push(N(p, s + k + o + i * 0.012, dd, vel - (o % 1 ? 8 : 0))));
+      } else if (style === "supersaw") {
+        if (energy >= 0.8) { for (const k of arange(0, d, 1)) for (const p of v) ev.push(N(p, s + k + 0.5, 0.4, vel)); }
+        else for (const p of v) ev.push(N(p, s, d, vel - 10));
+      } else if (style === "bells") {
+        const seq = []; for (let r = 0; r < Math.trunc(Math.max(1, d)); r++) seq.push(...v);
+        seq.forEach((p, k) => { if (k * 0.5 < d) ev.push(N(p + 12, s + k * 0.5, 0.45, vel - 10)); });
+      } else for (const p of v) ev.push(N(p, s, d, vel));
+    }
+    return ev;
+  }
+  function makeArp(spec, chords, energy) {
+    if (!spec.arp || energy < 0.5) return [];
+    const rate = ["synthwave", "edm", "ambient"].includes(spec.genre) ? 0.25 : 0.5, ev = [];
+    let prev = null;
+    for (const ch of chords) {
+      const v = voiceChord(ch, prev, 64, 84); prev = v;
+      const seq = v.length >= 2 ? [...v, v[1] + 12] : v;
+      let t = ch.start, k = 0;
+      while (t < ch.start + ch.dur - 1e-6) { ev.push(N(seq[k % seq.length], t, rate * 0.9, 70 + (k % 4 === 0 ? 15 : 0))); t += rate; k++; }
+    }
+    return ev;
+  }
+  function makeExtras(spec, chords, energy, hook) {
+    const out = {};
+    if (spec.extras.includes("choir") && energy >= 0.5)
+      out.choir = chords.flatMap((c) => voiceChord(c, null, 57, 72).slice(0, 3).map((p) => N(p, c.start, c.dur, 80)));
+    if (spec.extras.includes("brass") && energy >= 0.8)
+      out.brass = chords.flatMap((c) => voiceChord(c, null, 48, 67).map((p) => N(p, c.start, Math.min(c.dur, 2) * 0.9, 100)));
+    if (spec.extras.includes("bells") && energy >= 0.6)
+      out.bells = hook.slice(0, Math.max(4, Math.floor(hook.length / 2))).map((e) => ({ ...e, pitch: e.pitch + 12, vel: 70 }));
+    return out;
+  }
+
+  function blendTempo(detected, genreBpm) {
+    const cands = [detected, detected * 2, detected / 2];
+    let best = cands[0];
+    for (const b of cands) if (Math.abs(Math.log2(b / genreBpm)) < Math.abs(Math.log2(best / genreBpm))) best = b;
+    return Math.abs(Math.log2(best / genreBpm)) < 0.26 ? best : genreBpm;
+  }
+  const keyOf = (k) => ({ tonic: k.tonic, mode: k.mode, confidence: k.confidence });
+
+  function planSong(melody, spec, seed = 0, withVocals = false) {
+    const rng = makeRng(seed);
+    melody = JSON.parse(JSON.stringify(melody));
+    let key = keyOf(melody.key);
+    if (spec.key_override) {
+      const [nm, mode] = spec.key_override.split(" ");
+      const names = Object.fromEntries(NOTE_NAMES.map((n, i) => [n, i]));
+      Object.assign(names, { Db: 1, "D#": 3, Gb: 6, "G#": 8, "A#": 10 });
+      const tonic = nm in names ? names[nm] : key.tonic, shift = mod(tonic - key.tonic + 6, 12) - 6;
+      for (const nt of melody.notes) nt.pitch += shift;
+      key = { tonic, mode, confidence: 1 };
+    } else if (spec.prefer_minor === true && key.mode === "major" && key.confidence < 0.5) key = { tonic: (key.tonic + 9) % 12, mode: "minor", confidence: key.confidence };
+    else if (spec.prefer_minor === false && key.mode === "minor" && key.confidence < 0.5) key = { tonic: (key.tonic + 3) % 12, mode: "major", confidence: key.confidence };
+    melody.key = { tonic: key.tonic, mode: key.mode, name: `${NOTE_NAMES[key.tonic]} ${key.mode}`, confidence: key.confidence };
+    const bpm = spec.bpm || blendTempo(melody.bpm, GENRES[spec.genre].bpm);
+    const hookBars = Math.max(1, melody.bars), chorusBars = Math.min(hookBars >= 8 ? hookBars : 8, 16);
+    const plan = { version: 1, seed, bpm: round1(bpm), time_sig: [4, 4], key: { ...melody.key }, style: spec, hook_bars: hookBars,
+      with_vocals: withVocals, melody, sections: [] };
+    let bar = 0;
+    for (const [id, label, bars0, energy] of STRUCTURE) {
+      const bars = bars0 || chorusBars;
+      plan.sections.push({ id, label, start_bar: bar, bars, energy, seed: rng.integers(0, 2147483647) });
+      bar += bars;
+    }
+    plan.total_bars = bar;
+    for (const id of ["chorus1", "verse1", "verse2", "prechorus", "bridge", "chorus2", "final_chorus", "intro", "outro"])
+      generateSection(plan, plan.sections.findIndex((s) => s.id === id));
+    if (withVocals) attachLyrics(plan, spec);
+    return plan;
+  }
+
+  function generateSection(plan, idx, reseed = false) {
+    const sec = plan.sections[idx];
+    if (reseed) { sec.seed = randomSeed(); sec.variant = (sec.variant || 0) + 1; }
+    const rng = makeRng(sec.seed);
+    const temp = !reseed && !(sec.variant || 0) ? 0 : 0.5;
+    const key = keyOf(plan.key), spec = plan.style, melody = plan.melody;
+    const { bars, energy, id: name } = sec, beats = bars * 4;
+    const nextName = idx + 1 < plan.sections.length ? plan.sections[idx + 1].id : null;
+    const hook = melodyEvents(melody.notes), hookLen = plan.hook_bars * 4, motifBeats = Math.min(8, hookLen);
+    const motif = clipEv(notesIn(hook, 0, motifBeats), motifBeats);
+    const tonic = tonicLabel(key), tonicPc = key.tonic;
+    const chorus1Bars = plan.sections.find((s) => s.id === "chorus1").bars;
+    let lead, chords, labels;
+
+    if (["chorus1", "chorus2", "final_chorus"].includes(name)) {
+      const reps = Math.max(1, Math.floor(beats / hookLen));
+      lead = clipEv(repeat(hook, hookLen, reps), beats);
+      if (lead.length) {
+        const last = lead[lead.length - 1];
+        last.pitch = snapChord(last.pitch, new Set([tonicPc]));
+        last.dur = Math.max(last.dur, Math.min(2, beats - last.start));
+      }
+      const cpb = hookLen <= 4 && !["ambient", "cinematic"].includes(spec.genre) ? 2 : 1;
+      if (name === "chorus1" || !plan.chorus_labels || temp > 0) {
+        labels = harmonise(lead, bars, key, spec, rng, cpb, new Set([tonic, "IV", "VI", "vi"]), tonic, temp);
+        if (name === "chorus1") plan.chorus_labels = labels;
+      } else labels = plan.chorus_labels;
+      chords = buildChords(labels, key, spec, cpb);
+      if (name === "final_chorus") lead = [...lead, ...lead.map((e) => ({ ...e, pitch: e.pitch + 12, vel: Math.trunc(e.vel * 0.6), dbl: true }))];
+    } else if (name === "verse1" || name === "verse2") {
+      const base = simplifyRhythm(motif, name === "verse1" ? 0.5 : 0.25);
+      let steps = name === "verse1" ? -2 : rng.choice([-2, -1, -3]);
+      if (temp) steps = rng.choice([-1, -2, -3, 1]);
+      const a = shiftEvents(base, steps, key), aResp = shiftEvents(base, steps + rng.choice([1, 2]), key);
+      const ph = motifBeats, nPh = Math.floor(beats / ph);
+      lead = [];
+      for (let k = 0; k < nPh; k++) {
+        let src = k % 2 === 0 ? a : aResp;
+        if (k === nPh - 1 && nPh > 2) src = invert(a, key);
+        for (const e of src) lead.push({ ...e, start: e.start + k * ph });
+      }
+      lead = breathe(keepRegister(lead, 57, 74), ph);
+      labels = harmonise(lead, bars, key, spec, rng, 1, name === "verse1" ? new Set(["vi", "IV", "VI", "iv"]) : new Set([tonic, "vi", "VI"]),
+        null, 0.3 + temp, name === "verse1" ? new Set([tonic]) : null);
+      chords = buildChords(labels, key, spec);
+      lead = fitToChords(lead, chords, key);
+    } else if (name === "prechorus") {
+      const tpls = PRE_TEMPLATES[key.mode], tpl = tpls[rng.integers(0, tpls.length)];
+      chords = buildChords(tpl, key, spec);
+      let cell = clipEv(notesIn(motif, 0, 4), 4);
+      if (!cell.length) cell = [N(hook.length ? hook[0].pitch : 67, 0, 1)];
+      lead = [];
+      for (let b = 0; b < bars; b++) for (const e of shiftEvents(cell, b - 1, key)) lead.push({ ...e, start: e.start + b * 4 });
+      lead = lead.filter((e) => e.start < (bars - 1) * 4 + 1);
+      if (lead.length) lead[lead.length - 1].dur = beats - lead[lead.length - 1].start - 0.25;
+      lead = fitToChords(keepRegister(lead, 62, 77), chords, key);
+    } else if (name === "bridge") {
+      const opts = BRIDGE_TEMPLATES[key.mode], tpl = opts[rng.integers(0, opts.length)];
+      chords = buildChords(tpl.slice(0, bars), key, spec);
+      const m8 = clipEv(repeat(motif, motifBeats, Math.max(1, Math.floor(8 / motifBeats))), 8);
+      const inv8 = invert(simplifyRhythm(m8, 0.5), key);
+      const first = clipEv(augment(inv8, 2), 16);
+      const second = shiftEvents(inv8, 2, key).map((e) => ({ ...e, start: e.start + 16 }));
+      const third = shiftEvents(m8, 1, key).map((e) => ({ ...e, start: e.start + 24 }));
+      lead = breathe(keepRegister([...first, ...second, ...third], 60, 77), 8);
+      lead = fitToChords(clipEv(lead, beats), chords, key);
+    } else if (name === "intro") {
+      const cl = plan.chorus_labels || Array(8).fill(tonic), step = cl.length / chorus1Bars;
+      labels = arange(0, bars, 1).map((i) => cl[Math.trunc(i * step)]);
+      chords = buildChords(labels, key, spec);
+      const teaser = clipEv(notesIn(hook, 0, 4), 4);
+      lead = bars >= 3 ? teaser.map((e) => ({ ...e, start: e.start + (bars - 2) * 4, vel: Math.trunc(e.vel * 0.6) })) : [];
+    } else {
+      const cl = plan.chorus_labels || Array(8).fill(tonic), step = cl.length / chorus1Bars;
+      labels = [...arange(0, bars - 1, 1).map((i) => cl[Math.trunc(i * step)]), tonic];
+      chords = buildChords(labels, key, spec);
+      const frag = clipEv(notesIn(hook, 0, 8), 8);
+      lead = frag.map((e) => ({ ...e, vel: Math.trunc(e.vel * 0.75) }));
+      lead.push(N(snapChord(lead.length ? lead[lead.length - 1].pitch : 67, new Set([tonicPc])), (bars - 1) * 4, 4, 80));
+      lead = fitToChords(lead, chords, key);
+    }
+    const tracks = { lead, chords: makeChordPart(spec, chords, bars, energy), bass: makeBass(spec, chords, bars, energy),
+      drums: makeDrums(spec, bars, energy, rng, name, nextName), arp: makeArp(spec, chords, energy), ...makeExtras(spec, chords, energy, hook) };
+    sec.chords = chords.map((c) => ({ symbol: c.symbol, label: c.label, start: c.start, dur: c.dur, root: c.root, quality: c.quality, tones: c.tones }));
+    sec.tracks = tracks;
+    if (plan.with_vocals && plan.lyrics_cache) attachLyricsSection(plan, idx);
+    return sec;
+  }
+
+  function regenerateSection(plan, sectionId) {
+    generateSection(plan, plan.sections.findIndex((s) => s.id === sectionId), true);
+    return plan;
+  }
+
+  function sectionSummary(plan) {
+    const spb = 60 / plan.bpm * 4;
+    return plan.sections.map((s) => ({ id: s.id, label: s.label, start_bar: s.start_bar, bars: s.bars,
+      start_sec: rhe(s.start_bar * spb * 100) / 100, dur_sec: rhe(s.bars * spb * 100) / 100, energy: s.energy,
+      chords: (s.chords || []).map((c) => c.symbol), variant: s.variant || 0, lyrics: s.lyrics || null }));
+  }
+
+  // ------------------------------------------------------------- lyrics.py
+  const VOCAL_SECTIONS = ["verse1", "prechorus", "chorus1", "verse2", "chorus2", "bridge", "final_chorus"];
+  const BANK = {
+    night: ["neon lights across the rain", "we drive until the morning comes", "city hums beneath my skin", "chasing shadows through the haze",
+      "you and me against the night", "the radio is calling", "headlights burning gold", "lost inside the afterglow", "hold on",
+      "don't let go tonight", "every street remembers us", "running on electric dreams"],
+    love: ["I still hear you when it's quiet", "your heartbeat is my favourite song", "stay a little longer", "we were young and we were reckless",
+      "tell me that you feel it too", "fall into my arms again", "nothing else is real but this", "I would wait a thousand years",
+      "you're the light I'm running to", "say my name", "don't you let me go", "we can make it home"],
+    epic: ["rise above the burning sky", "we will never fall again", "hear the thunder in our hearts", "stand together through the storm",
+      "the fire will lead us on", "break the chains", "we are the ones who stay", "march into the light", "never surrender",
+      "feel the ground begin to shake", "this is our moment now", "the world will know our names"],
+    dark: ["something's waiting in the dark", "I can feel the cold come in", "whispers underneath the floor", "nobody gets out alive",
+      "shadows crawling up the wall", "I'm not who I used to be", "silence is a heavy crown", "the night is hungry", "can't escape",
+      "the walls are closing in", "burning bridges one by one", "I hear the echo calling"],
+    dream: ["floating where the colours fade", "I see you in a sea of stars", "drifting slowly out of time", "wake me when the sun is gold",
+      "everything is soft and slow", "we could stay here forever", "clouds are melting into blue", "close your eyes and fly", "hold me",
+      "lighter than the air", "somewhere far away from here", "the sky is ours tonight"],
+  };
+  const MOOD_TO_THEME = { dark: "dark", sad: "love", happy: "night", dreamy: "dream", epic: "epic", chill: "dream", aggressive: "dark" };
+  const GENRE_TO_THEME = { synthwave: "night", cinematic: "epic", ambient: "dream", lofi: "dream", trap: "dark", rnb: "love", pop: "love" };
+
+  function syllables(line) {
+    const out = [];
+    for (const w of line.match(/[a-zA-Z']+/g) || []) {
+      const lw = w.toLowerCase();
+      let groups = lw.match(/[^aeiouy]*[aeiouy]+(?:[^aeiouy]*$|[^aeiouy](?=[^aeiouy]))?/g) || [];
+      if (groups.length > 1 && lw.endsWith("e") && !lw.endsWith("le") && !lw.endsWith("ee") && groups[groups.length - 1] === "e") {
+        groups = groups.slice(0, -1); groups[groups.length - 1] += "e";
+      }
+      if (!groups.length) groups = [lw];
+      const joined = groups.join("");
+      if (joined.length < w.length) groups[groups.length - 1] += lw.slice(joined.length);
+      out.push(...groups);
+    }
+    return out;
+  }
+  function vowelOf(syl) {
+    const m = syl.match(/[aeiouy]+/), v = m ? m[0] : "a";
+    if (/^(oo|u|ew)/.test(v)) return "u";
+    if (/^(ee|i|y|ea)/.test(v)) return "i";
+    if (v.startsWith("e")) return "e";
+    if (v.startsWith("o")) return "o";
+    return "a";
+  }
+  function phrasesOf(ev, maxLen = 8) {
+    const out = []; let cur = [], start = 0;
+    ev.forEach((e, i) => {
+      if (cur.length) {
+        const prev = ev[cur[cur.length - 1]];
+        if (e.start - (prev.start + prev.dur) >= 0.5 || e.start - start >= maxLen) { out.push(cur); cur = []; }
+      }
+      if (!cur.length) start = e.start;
+      cur.push(i);
+    });
+    if (cur.length) out.push(cur);
+    return out;
+  }
+  function attachLyrics(plan, spec) {
+    const layout = {};
+    for (const s of plan.sections) if (VOCAL_SECTIONS.includes(s.id) && s.id !== "chorus2" && s.id !== "final_chorus")
+      layout[s.id] = phrasesOf(s.tracks.lead.filter((e) => !e.dbl)).map((p) => p.length);
+    const rng = makeRng(plan.seed);
+    const theme = spec.mood.map((m) => MOOD_TO_THEME[m]).find(Boolean) || GENRE_TO_THEME[spec.genre] || "love";
+    const pool = [...BANK[theme], ...BANK.love.slice(0, 4)], used = new Set(), lyr = {};
+    for (const [sid, counts] of Object.entries(layout)) {
+      lyr[sid] = counts.map((n) => {
+        const scored = pool.map((l) => [Math.abs(syllables(l).length - n) + (used.has(l) ? 3 : 0) + rng.random(), l]).sort((a, b) => a[0] - b[0]);
+        used.add(scored[0][1]);
+        return scored[0][1];
+      });
+    }
+    lyr.chorus2 = lyr.chorus1 || [];
+    lyr.final_chorus = lyr.chorus1 || [];
+    plan.lyrics_cache = lyr;
+    plan.sections.forEach((s, i) => { if (VOCAL_SECTIONS.includes(s.id)) attachLyricsSection(plan, i); });
+  }
+  function attachLyricsSection(plan, idx) {
+    const s = plan.sections[idx];
+    if (!VOCAL_SECTIONS.includes(s.id)) return;
+    const lines = plan.lyrics_cache[s.id] || [], lead = s.tracks.lead, main = lead.filter((e) => !e.dbl), vocal = [];
+    phrasesOf(main).forEach((ph, k) => {
+      const line = lines.length ? lines[k % lines.length] : "ooh";
+      const syl = syllables(line).length ? syllables(line) : ["ooh"];
+      ph.forEach((ni, j) => {
+        const e = main[ni];
+        if (j < syl.length) { const text = j < ph.length - 1 ? syl[j] : syl.slice(j).join(""); vocal.push({ ...e, syl: text, vowel: vowelOf(text) }); }
+        else vocal.push({ ...e, syl: "-", vowel: vocal.length ? vocal[vocal.length - 1].vowel : "a" });
+      });
+    });
+    s.tracks.vocal = vocal;
+    s.tracks.lead = lead.map((e) => ({ ...e, vel: Math.trunc(e.vel * 0.45) }));
+    s.lyrics = lines;
+  }
+
+  // --------------------------------------------------------------- midi.py
+  const PPQ = 480;
+  const GM_PROGRAM = { saw_lead: 81, supersaw_lead: 81, pluck_lead: 84, bell_lead: 10, epiano_lead: 4, strings_lead: 40, flute_lead: 73,
+    sax_lead: 65, guitar_lead: 29, pad: 89, piano: 0, epiano: 4, strings: 48, guitar: 29, guitar_ac: 25, supersaw: 90, bells: 10,
+    organ: 16, choir: 52, brass: 61, arp: 84, vocal: 54, "808": 38, sub_bass: 38, synth_bass: 38 };
+  const GM_DRUM = { kick: 36, snare: 38, clap: 39, hat: 42, ohat: 46, crash: 49, tom: 45, taiko: 41, taiko_hi: 47, boom: 35 };
+  function vlq(n) { const out = [n & 0x7f]; n >>= 7; while (n) { out.push((n & 0x7f) | 0x80); n >>= 7; } return out.reverse(); }
+  const u32 = (n) => [(n >>> 24) & 255, (n >>> 16) & 255, (n >>> 8) & 255, n & 255];
+  const u16 = (n) => [(n >>> 8) & 255, n & 255];
+  const utf8 = (s) => Array.from(new TextEncoder().encode(s));
+  function midiTrack(events, name) {
+    events = events.map((e, i) => [e, i]).sort((a, b) => (a[0][0] - b[0][0]) || (((a[0][1][0] & 0xf0) === 0x90) - ((b[0][1][0] & 0xf0) === 0x90)) || (a[1] - b[1])).map((x) => x[0]);
+    const nm = utf8(name);
+    let data = [0x00, 0xff, 0x03, ...vlq(nm.length), ...nm], t = 0;
+    for (const [tick, msg] of events) { data.push(...vlq(tick - t), ...msg); t = tick; }
+    data.push(0x00, 0xff, 0x2f, 0x00);
+    return [...utf8("MTrk"), ...u32(data.length), ...data];
+  }
+  function writeMidi(tracks, bpm, keySig = null, text = null) {
+    const tempo = Math.trunc(60000000 / bpm);
+    const meta = [[0, [0xff, 0x51, 0x03, (tempo >> 16) & 255, (tempo >> 8) & 255, tempo & 255]], [0, [0xff, 0x58, 0x04, 0x04, 0x02, 0x18, 0x08]]];
+    if (text) { const tb = utf8(text); meta.push([0, [0xff, 0x01, ...vlq(tb.length), ...tb]]); }   // same order as midi.py
+    if (keySig) meta.push([0, [0xff, 0x59, 0x02, keySig[0] & 0xff, keySig[1] === "minor" ? 1 : 0]]);
+    const chunks = [midiTrack(meta, "Larkspun")];
+    for (const [name, tr] of Object.entries(tracks)) {
+      const ch = tr.channel || 0, ev = [];
+      if (ch !== 9) ev.push([0, [0xc0 | ch, (tr.program || 0) & 0x7f]]);
+      for (const [p, s, d, v] of tr.notes) {
+        const a = rhe(s * PPQ), b = Math.max(a + 1, rhe((s + d) * PPQ));
+        ev.push([a, [0x90 | ch, p & 0x7f, Math.max(1, Math.min(127, v))]]);
+        ev.push([b, [0x80 | ch, p & 0x7f, 0]]);
+      }
+      chunks.push(midiTrack(ev, name));
+    }
+    return new Uint8Array([...utf8("MThd"), ...u32(6), ...u16(1), ...u16(chunks.length), ...u16(PPQ), ...chunks.flat()]);
+  }
+  function keySignature(tonic, mode) {
+    const majorTonic = mode === "minor" ? (tonic + 3) % 12 : tonic;
+    const sharps = { 0: 0, 7: 1, 2: 2, 9: 3, 4: 4, 11: 5, 6: 6, 5: -1, 10: -2, 3: -3, 8: -4, 1: -5 };
+    return [sharps[majorTonic], mode];
+  }
+  function planToMidi(plan, text = null) {
+    const st = plan.style;
+    const sound = { lead: st.lead, chords: st.chords, bass: st.bass !== "808" ? "synth_bass" : "808", arp: "arp", vocal: "vocal", choir: "choir", brass: "brass", bells: "bells" };
+    const chan = { lead: 0, vocal: 1, chords: 2, arp: 3, bass: 4, choir: 5, brass: 6, bells: 7 };
+    const tracks = {};
+    for (const sec of plan.sections) {
+      const off = sec.start_bar * 4;
+      for (const [name, events] of Object.entries(sec.tracks)) {
+        if (name === "drums") {
+          const t = (tracks.Drums = tracks.Drums || { channel: 9, notes: [] });
+          for (const e of events) t.notes.push([GM_DRUM[e.drum] ?? 38, off + e.start, 0.1, e.vel]);
+          continue;
+        }
+        const nm = name[0].toUpperCase() + name.slice(1);
+        const t = (tracks[nm] = tracks[nm] || { channel: chan[name] ?? 8, program: GM_PROGRAM[sound[name] || "pad"] || 0, notes: [] });
+        for (const e of events) t.notes.push([e.pitch, off + e.start, e.dur, e.vel]);
+      }
+    }
+    return writeMidi(tracks, plan.bpm, keySignature(plan.key.tonic, plan.key.mode), text);
+  }
+  function melodyToMidi(melody, text = null) {
+    const notes = melody.notes.map((nt) => [nt.pitch, nt.start, nt.dur, nt.velocity ?? 96]);
+    return writeMidi({ Melody: { channel: 0, program: 0, notes } }, melody.bpm, keySignature(melody.key.tonic, melody.key.mode), text);
+  }
+
+  // ------------------------------------------- marking.py + WAV + ZIP writers
+  const VERSION = "0.3.1";
+  function provenance(plan, appName = "Larkspun") {
+    const now = new Date().toISOString().replace(/\.\d+Z$/, "+00:00");
+    return { ai_generated: true, generator: `${appName} ${VERSION} (browser edition)`, created: now,
+      method: "Automatically composed, arranged and synthesised from a user's hummed melody and text description.",
+      inputs: { melody: "user recording", description: (plan && plan.style && plan.style.text) || "" }, lyrics_by_llm: false,
+      notice: "This audio was generated by an AI system (EU AI Act, Article 50)." };
+  }
+  const statement = (prov) => `AI-generated music. Created with ${prov.generator} on ${prov.created.slice(0, 10)} from the user's hummed melody. This content was generated by an AI system (EU AI Act Art. 50).`;
+
+  /** WAV from channel arrays, with a LIST/INFO metadata chunk before "data". 16-bit PCM, or 32-bit float for stems (no clipping). */
+  function wavBytes(channels, sr, info = null, float32 = false) {
+    const nch = channels.length, n = channels[0].length;
+    let infoBytes = [];
+    if (info) {
+      let body = utf8("INFO");
+      for (const [k, v] of Object.entries(info)) {
+        const b = [...utf8(v), 0]; if (b.length % 2) b.push(0);
+        body = body.concat(utf8(k.padEnd(4).slice(0, 4)), [b.length & 255, (b.length >> 8) & 255, (b.length >> 16) & 255, (b.length >>> 24) & 255], b);
+      }
+      infoBytes = [...utf8("LIST"), body.length & 255, (body.length >> 8) & 255, (body.length >> 16) & 255, (body.length >>> 24) & 255, ...body];
+    }
+    const bps = float32 ? 4 : 2, fmtLen = float32 ? 8 + 18 + 12 : 8 + 16;
+    const dataLen = n * nch * bps, d0 = 12 + fmtLen + infoBytes.length;
+    const buf = new ArrayBuffer(d0 + 8 + dataLen), dv = new DataView(buf), u8 = new Uint8Array(buf);
+    const w = (o, s) => u8.set(utf8(s), o);
+    w(0, "RIFF"); dv.setUint32(4, d0 + dataLen, true); w(8, "WAVE"); w(12, "fmt ");
+    dv.setUint32(16, float32 ? 18 : 16, true); dv.setUint16(20, float32 ? 3 : 1, true); dv.setUint16(22, nch, true); dv.setUint32(24, sr, true);
+    dv.setUint32(28, sr * nch * bps, true); dv.setUint16(32, nch * bps, true); dv.setUint16(34, bps * 8, true);
+    if (float32) { dv.setUint16(36, 0, true); w(38, "fact"); dv.setUint32(42, 4, true); dv.setUint32(46, n, true); }
+    u8.set(infoBytes, 12 + fmtLen);
+    w(d0, "data"); dv.setUint32(d0 + 4, dataLen, true);
+    let o = d0 + 8;
+    if (float32) for (let i = 0; i < n; i++) for (let c = 0; c < nch; c++) { dv.setFloat32(o, channels[c][i], true); o += 4; }
+    else for (let i = 0; i < n; i++) for (let c = 0; c < nch; c++) { dv.setInt16(o, Math.trunc(Math.fround(Math.fround(clip(channels[c][i], -1, 1)) * 32767)), true); o += 2; }
+    return u8;
+  }
+  const wavInfo = (prov, genre) => Object.assign({ ICMT: statement(prov), ISFT: prov.generator, ICRD: prov.created.slice(0, 10) }, genre ? { IGNR: genre } : {});
+
+  const CRC_TABLE = (() => { const t = new Uint32Array(256); for (let n = 0; n < 256; n++) { let c = n; for (let k = 0; k < 8; k++) c = c & 1 ? 0xedb88320 ^ (c >>> 1) : c >>> 1; t[n] = c >>> 0; } return t; })();
+  function crc32(u8) { let c = 0xffffffff; for (let i = 0; i < u8.length; i++) c = CRC_TABLE[(c ^ u8[i]) & 255] ^ (c >>> 8); return (c ^ 0xffffffff) >>> 0; }
+  /** Uncompressed ZIP ("stored") with an archive comment. */
+  function zipBytes(files, comment = "") {
+    const le16 = (n) => [n & 255, (n >> 8) & 255], le32 = (n) => [n & 255, (n >> 8) & 255, (n >> 16) & 255, (n >>> 24) & 255];
+    const parts = [], central = [];
+    let offset = 0;
+    for (const [name, data] of files) {
+      const nm = utf8(name), crc = crc32(data);
+      const local = [...le32(0x04034b50), ...le16(20), ...le16(0x0800), ...le16(0), ...le16(0), ...le16(0x21), ...le32(crc), ...le32(data.length), ...le32(data.length), ...le16(nm.length), ...le16(0), ...nm];
+      parts.push(new Uint8Array(local), data);
+      central.push(...le32(0x02014b50), ...le16(20), ...le16(20), ...le16(0x0800), ...le16(0), ...le16(0), ...le16(0x21), ...le32(crc), ...le32(data.length), ...le32(data.length),
+        ...le16(nm.length), ...le16(0), ...le16(0), ...le16(0), ...le16(0), ...le32(0), ...le32(offset), ...nm);
+      offset += local.length + data.length;
+    }
+    const cm = utf8(comment).slice(0, 65535);
+    const end = [...le32(0x06054b50), ...le16(0), ...le16(0), ...le16(files.length), ...le16(files.length), ...le32(central.length), ...le32(offset), ...le16(cm.length), ...cm];
+    return new Blob([...parts, new Uint8Array(central), new Uint8Array(end)], { type: "application/zip" });
+  }
+
+  const api = { rhe, makeRng, resample, yinTrack, segmentNotes, analyse, transcribe, parseStyle, planSong, generateSection, regenerateSection,
+    sectionSummary, planToMidi, melodyToMidi, writeMidi, provenance, statement, wavBytes, wavInfo, zipBytes, crc32, voiceChord,
+    NOTE_NAMES, GENRES, VERSION, syllables, barsFor, correctPitch, detectTempo, detectKey, estimateTuning };
+  if (typeof module !== "undefined" && module.exports) module.exports = api;
+  else root.LarkspunEngine = api;
+})(typeof globalThis !== "undefined" ? globalThis : this);
+
+</script>
+<script id="core-synth">
+/*
+ * Larkspun renderer, JavaScript edition: song plan -> stereo audio and stems.
+ * Port of backend/app/engine/synth.py. Same instruments, mix, sidechain, delay
+ * and mastering; two deliberate differences so it fits in a phone browser:
+ *   - reverb is an algorithmic (Freeverb-style) tank instead of a long
+ *     convolution, which would take minutes in JavaScript;
+ *   - stems are rendered one at a time (about 150 MB peak for a 2.5-minute
+ *     song instead of 400 MB) and each stem has its own seeded random stream,
+ *     so re-rendering one stem for export gives exactly the same audio.
+ */
+(function (root) {
+  "use strict";
+  const E = typeof module !== "undefined" && module.exports ? require("./engine.js") : root.LarkspunEngine;
+  const SR = 44100;
+  const TWO_PI = 2 * Math.PI;
+  const yieldNow = () => new Promise((r) => setTimeout(r, 0));
+
+  // ------------------------------------------------------------- primitives
+  const mtof = (m) => 440 * 2 ** ((m - 69) / 12);
+  const at = (f, i) => (typeof f === "number" ? f : f[i]);
+
+  /** Butterworth biquad sections, applied in place. order 2 = one section, order 4 = two. */
+  function biquad(x, type, f, q) {
+    f = Math.min(Math.max(f, 20), SR / 2 * 0.95);
+    const w0 = TWO_PI * f / SR, c = Math.cos(w0), alpha = Math.sin(w0) / (2 * q), a0 = 1 + alpha;
+    let b0, b1, b2;
+    if (type === "low") { b0 = (1 - c) / 2; b1 = 1 - c; b2 = b0; }
+    else { b0 = (1 + c) / 2; b1 = -(1 + c); b2 = b0; }
+    b0 /= a0; b1 /= a0; b2 /= a0;
+    const a1 = -2 * c / a0, a2 = (1 - alpha) / a0;
+    let z1 = 0, z2 = 0;
+    for (let i = 0; i < x.length; i++) {
+      const xi = x[i], y = b0 * xi + z1;
+      z1 = b1 * xi - a1 * y + z2;
+      z2 = b2 * xi - a2 * y;
+      x[i] = y;
+    }
+    return x;
+  }
+  const Q4 = [0.5411961, 1.3065630];
+  function lp(x, f, order = 2) { if (order === 4) { biquad(x, "low", f, Q4[0]); return biquad(x, "low", f, Q4[1]); } return biquad(x, "low", f, Math.SQRT1_2); }
+  function hp(x, f, order = 2) { if (order === 4) { biquad(x, "high", f, Q4[0]); return biquad(x, "high", f, Q4[1]); } return biquad(x, "high", f, Math.SQRT1_2); }
+  const bp = (x, f1, f2) => lp(hp(x, f1), f2);
+  const copy = (x) => Float32Array.from(x);
+
+  function saw(f, n, ph0 = 0) {
+    const y = new Float32Array(n);
+    let ph = 0;
+    for (let i = 0; i < n; i++) {
+      const dt = Math.max(at(f, i) / SR, 1e-9);
+      ph += dt; if (ph >= 1) ph -= 1;
+      let p = ph + ph0; if (p >= 1) p -= 1;
+      let v = 2 * p - 1;
+      if (p < dt) { const t = p / dt; v -= 2 * t - t * t - 1; }
+      else if (p > 1 - dt) { const t = (p - 1) / dt; v -= t * t + 2 * t + 1; }
+      y[i] = v;
+    }
+    return y;
+  }
+  function square(f, n, width = 0.5) { const a = saw(f, n), b = saw(f, n, width); for (let i = 0; i < n; i++) a[i] -= b[i]; return a; }
+  function sine(f, n, ph0 = 0) {
+    const y = new Float32Array(n);
+    let ph = 0;
+    for (let i = 0; i < n; i++) { ph += at(f, i) / SR; if (ph >= 1) ph -= 1; y[i] = Math.sin(TWO_PI * (ph + ph0)); }
+    return y;
+  }
+  function adsr(n, noteN, a = 0.01, d = 0.1, s = 0.7, r = 0.2) {
+    const env = new Float32Array(n);
+    const A = Math.trunc(a * SR) + 1, D = Math.trunc(d * SR) + 1, R = Math.trunc(r * SR) + 1;
+    noteN = Math.max(1, Math.min(noteN, n));
+    let last = 0;
+    for (let t = 0; t < noteN; t++) { last = t < A ? t / A : s + (1 - s) * Math.exp(-(t - A) / D * 3); env[t] = last; }
+    const tail = Math.min(R, n - noteN);
+    for (let k = 0; k < tail; k++) env[noteN + k] = last * Math.exp(-k / R * 5);
+    return env;
+  }
+  function expdecay(n, t60) {
+    const y = new Float32Array(n), m = Math.exp(-6.9 / (t60 * SR));
+    let v = 1;
+    for (let i = 0; i < n; i++) { y[i] = v; v *= m; }
+    return y;
+  }
+  function vibrato(f, n, rate = 5.5, depth = 0.12, delay = 0.25) {
+    const y = new Float32Array(n);
+    for (let i = 0; i < n; i++) {
+      const t = i / SR, ramp = Math.min(1, Math.max(0, (t - delay) / 0.3));
+      y[i] = at(f, i) * 2 ** (depth * ramp * Math.sin(TWO_PI * rate * t) / 12);
+    }
+    return y;
+  }
+  function noise(n, rng, uniform = false) {
+    const y = new Float32Array(n);
+    for (let i = 0; i < n; i++) y[i] = uniform ? rng.random() * 2 - 1 : rng.normal(0, 1);
+    return y;
+  }
+  function ksPluck(f, n, decay, brightness, rng) {
+    const P = Math.max(2, E.rhe(SR / f - 0.5)), y = new Float32Array(n + P + 1);
+    const burst = lp(noise(P, rng, true), 1500 + 8000 * brightness);
+    y.set(burst, 1);
+    const g = 0.5 * decay;
+    for (let i = P + 1; i < y.length; i++) y[i] = g * (y[i - P] + y[i - P - 1]);
+    return y.subarray(1, n + 1);
+  }
+  function fm(fc, ratio, index, n) {
+    const y = new Float32Array(n);
+    for (let i = 0; i < n; i++) {
+      const t = i / SR;
+      y[i] = Math.sin(TWO_PI * fc * t + at(index, i) * Math.sin(TWO_PI * fc * ratio * t));
+    }
+    return y;
+  }
+  /** a = a*ka + b*kb (+ ...), in place on a. */
+  function mix(a, ...pairs) { for (let k = 0; k < pairs.length; k += 2) { const b = pairs[k], g = pairs[k + 1]; for (let i = 0; i < a.length; i++) a[i] += b[i] * g; } return a; }
+  function mul(a, ...bs) { for (const b of bs) { if (typeof b === "number") for (let i = 0; i < a.length; i++) a[i] *= b; else for (let i = 0; i < a.length; i++) a[i] *= b[i]; } return a; }
+  const tanhIn = (a, k) => { for (let i = 0; i < a.length; i++) a[i] = Math.tanh(k * a[i]); return a; };
+  const detunes = (voices, cents) => Array.from({ length: voices }, (_, i) => (voices === 1 ? 0 : -cents + 2 * cents * i / (voices - 1)));
+  function unison(fv, n, voices, cents, rng) {
+    const out = new Float32Array(n);
+    for (const d of detunes(voices, cents)) {
+      const r = 2 ** (d / 1200), f2 = typeof fv === "number" ? fv * r : fv.map((v) => v * r);
+      mix(out, saw(f2, n, rng.random()), 1 / voices);
+    }
+    return out;
+  }
+
+  // ------------------------------------------------------------ instruments
+  const FORMANTS = { a: [850, 1220, 2810], e: [600, 2000, 2800], i: [350, 2500, 3200], o: [500, 900, 2700], u: [380, 800, 2600] };
+
+  function renderNote(inst, pitch, dur, vel, ctx) {
+    const f = mtof(pitch), v = (vel / 127) ** 1.4, b = ctx.brightness ?? 0.6, rng = ctx.rng, noteN = Math.trunc(dur * SR);
+    if (inst === "saw_lead" || inst === "supersaw_lead" || inst === "supersaw") {
+      const rel = 0.25, n = noteN + Math.trunc(rel * SR);
+      const fv = inst === "saw_lead" ? vibrato(f, n, 5.5, 0.1) : f;
+      const x = unison(fv, n, inst === "saw_lead" ? 2 : 5, 12, rng);
+      if (inst === "saw_lead") mix(x, square(typeof fv === "number" ? fv / 2 : fv.map((q) => q / 2), n), 0.3);
+      lp(x, 1200 + 5000 * b);
+      return mul(x, adsr(n, noteN, 0.008, 0.25, 0.75, rel), v);
+    }
+    if (inst === "pluck_lead" || inst === "arp") {
+      const rel = 0.3, n = noteN + Math.trunc(rel * SR);
+      const raw = mix(saw(f, n), saw(f * 1.003, n), 0.5);
+      const bright = lp(copy(raw), 2500 + 6000 * b), dark = lp(raw, 700 + 900 * b), e = expdecay(n, 0.25);
+      const x = new Float32Array(n);
+      for (let i = 0; i < n; i++) x[i] = bright[i] * e[i] + dark[i] * (1 - e[i]) * 0.6;
+      return mul(x, adsr(n, noteN, 0.002, 0.3, inst === "arp" ? 0.35 : 0.55, rel), v);
+    }
+    if (inst === "bell_lead" || inst === "bells") {
+      const n = noteN + Math.trunc(1.2 * SR), idx = mul(expdecay(n, 0.8), 3);
+      const x = mix(mul(fm(f, 3.5, idx, n), 0.6), fm(f, 1, idx.map((q) => q * 0.5), n), 0.4);
+      return mul(x, expdecay(n, 1.6), adsr(n, n, 0.002, 0.1, 1, 0.01), v * 0.8);
+    }
+    if (inst === "epiano" || inst === "epiano_lead") {
+      const n = noteN + Math.trunc(0.5 * SR), idx = expdecay(n, 0.6).map((q) => (1.6 * q + 0.25) * (0.6 + 0.6 * v));
+      const tine = mul(fm(f, 14, expdecay(n, 0.05).map((q) => 0.6 * q), n), expdecay(n, 0.15), 0.12);
+      const x = mix(fm(f, 1, idx, n), tine, 1);
+      for (let i = 0; i < n; i++) x[i] *= 1 + 0.15 * Math.sin(TWO_PI * 4.5 * i / SR);
+      return mul(x, adsr(n, noteN, 0.002, 1.2, 0.35, 0.35), v * 0.7);
+    }
+    if (inst === "piano") {
+      const n = noteN + Math.trunc(0.6 * SR), t60 = 3.5 * (440 / f) ** 0.35, x = new Float32Array(n);
+      for (let k = 1; k < 9; k++) {
+        const fk = f * k * Math.sqrt(1 + 0.0004 * k * k);
+        if (fk > SR / 2.2) break;
+        mix(x, mul(sine(fk, n, rng.random()), expdecay(n, t60 / k ** 0.7)), 1 / k ** 1.3);
+      }
+      const hammer = mul(hp(noise(n, rng), 2000), expdecay(n, 0.01), 0.05);
+      return mul(mix(x, hammer, 1), adsr(n, noteN, 0.001, 2.0, 0.6, 0.25), v * 0.6);
+    }
+    if (["strings", "strings_lead", "pad", "choir", "organ", "brass"].includes(inst)) {
+      const rel = { strings: 0.5, strings_lead: 0.35, pad: 1.0, choir: 0.6, organ: 0.1, brass: 0.25 }[inst], n = noteN + Math.trunc(rel * SR);
+      if (inst === "organ") {
+        const x = new Float32Array(n);
+        for (const [h, a] of [[0.5, 0.6], [1, 1], [2, 0.6], [3, 0.3], [4, 0.25]]) mix(x, sine(f * h, n), a);
+        for (let i = 0; i < n; i++) x[i] *= 1 + 0.1 * Math.sin(TWO_PI * 6.5 * i / SR);
+        return mul(x, adsr(n, noteN, 0.01, 0.1, 0.9, rel), v * 0.3);
+      }
+      const fv = vibrato(f, n, 5.0, inst !== "pad" ? 0.08 : 0, 0.15);
+      let x = unison(fv, n, inst === "pad" ? 4 : 3, 14, rng);
+      if (inst === "choir") {
+        const out = new Float32Array(n);
+        FORMANTS[ctx.vowel || "a"].forEach((F, k) => mix(out, bp(copy(x), F * 0.85, F * 1.15), [1, 0.6, 0.25][k]));
+        x = mul(out, 3);
+      } else if (inst === "brass") {
+        const bright = lp(copy(x), 900 + 3500 * b), dark = lp(x, 500), sw = expdecay(n, 0.12);
+        x = new Float32Array(n);
+        for (let i = 0; i < n; i++) x[i] = dark[i] * sw[i] + bright[i] * (1 - sw[i]);
+      } else lp(x, (inst === "pad" ? 900 : 1800) + 3500 * b);
+      const a = { strings: 0.25, strings_lead: 0.06, pad: 0.5, choir: 0.3, brass: 0.04 }[inst];
+      return mul(x, adsr(n, noteN, a, 0.4, 0.85, rel), v * (inst === "pad" ? 0.5 : 0.7));
+    }
+    if (inst === "guitar" || inst === "guitar_ac") {
+      const n = noteN + Math.trunc(0.15 * SR);
+      let x = Float32Array.from(ksPluck(f, n, inst === "guitar_ac" ? 0.997 : 0.999, 0.5 + 0.4 * b, rng));
+      if (inst === "guitar") { tanhIn(x, 4); mul(x, 0.5); lp(x, 3500); }
+      return mul(x, adsr(n, noteN, 0.001, 0.5, 0.9, 0.1), v);
+    }
+    if (inst === "flute_lead") {
+      const n = noteN + Math.trunc(0.15 * SR), fv = vibrato(f, n, 5.0, 0.1, 0.2);
+      const x = mix(sine(fv, n), sine(fv.map((q) => q * 2), n), 0.2, sine(fv.map((q) => q * 3), n), 0.05);
+      mix(x, bp(noise(n, rng), f, Math.min(f * 3, 15000)), 0.08);
+      return mul(x, adsr(n, noteN, 0.05, 0.2, 0.85, 0.12), v * 0.6);
+    }
+    if (inst === "sax_lead") {
+      const n = noteN + Math.trunc(0.12 * SR), x = tanhIn(saw(vibrato(f, n, 5.5, 0.15, 0.2), n), 2.5);
+      return mul(bp(x, 400, 3500), 1.5, adsr(n, noteN, 0.03, 0.2, 0.8, 0.1), v * 0.6);
+    }
+    if (inst === "guitar_lead") {
+      const n = noteN + Math.trunc(0.2 * SR), fv = vibrato(f, n, 5.5, 0.2, 0.3);
+      const x = tanhIn(mix(saw(fv, n), saw(fv.map((q) => q * 1.004), n), 0.5), 6);
+      return mul(lp(bp(x, 150, 6000), 4000), 0.5, adsr(n, noteN, 0.005, 0.3, 0.85, 0.15), v);
+    }
+    if (inst === "vocal") {
+      const n = noteN + Math.trunc(0.12 * SR), fem = ctx.vocal_feel !== "male";
+      const fv = vibrato(f, n, 5.2, 0.25, 0.3), jit = lp(noise(n, rng), 8);
+      for (let i = 0; i < n; i++) fv[i] *= 1 + 0.003 * jit[i];
+      const src = mix(saw(fv, n), noise(n, rng), 0.015);
+      const F = FORMANTS[ctx.vowel] || FORMANTS.a, sc = fem ? 1 : 0.85, x = new Float32Array(n);
+      F.forEach((Fi, k) => mix(x, bp(copy(src), Fi * sc * 0.9, Fi * sc * 1.1), [1, 0.5, 0.25][k]));
+      mul(x, 3);
+      mix(x, lp(src, 400), 0.15);
+      const syl = ctx.syl || "";
+      if (syl && syl !== "-" && "stfkpch".includes(syl[0])) {
+        const cn = Math.min(n, Math.trunc(0.05 * SR)), cons = mul(hp(noise(cn, rng), 3000), expdecay(cn, 0.03), 0.3);
+        for (let i = 0; i < cn; i++) x[i] += cons[i];
+      }
+      return mul(x, adsr(n, noteN, syl !== "-" ? 0.04 : 0.08, 0.2, 0.85, 0.12), v);
+    }
+    if (inst === "808") {
+      const n = noteN + Math.trunc(0.3 * SR), fv = new Float32Array(n);
+      for (let i = 0; i < n; i++) fv[i] = f * (1 + Math.exp(-i / SR / 0.02));
+      return mul(tanhIn(sine(fv, n), 2.2), 0.8, adsr(n, noteN, 0.002, 1.5, 0.6, 0.25), v);
+    }
+    if (inst === "sub_bass") {
+      const n = noteN + Math.trunc(0.2 * SR);
+      return mul(mix(sine(f, n), lp(saw(f, n), 350), 0.25), adsr(n, noteN, 0.02, 0.3, 0.9, 0.2), v * 0.9);
+    }
+    if (inst === "synth_bass") {
+      const n = noteN + Math.trunc(0.08 * SR), raw = mix(saw(f, n), square(f * 0.5, n), 0.3);
+      const bright = lp(copy(raw), 600 + 1500 * b), dark = lp(raw, 250), e = expdecay(n, 0.15), s = sine(f, n), x = new Float32Array(n);
+      for (let i = 0; i < n; i++) x[i] = Math.tanh(1.5 * (bright[i] * e[i] + dark[i] * (1 - e[i]) + 0.5 * s[i]));
+      return mul(x, adsr(n, noteN, 0.003, 0.2, 0.8, 0.05), v * 0.7);
+    }
+    const n = noteN + Math.trunc(0.1 * SR);
+    return mul(sine(f, n), adsr(n, noteN), v);
+  }
+
+  // ------------------------------------------------------------------ drums
+  /** FFT convolution, used once per kit for the gated 80s snare. */
+  function fftConvolve(a, b, outLen) {
+    let size = 1; while (size < a.length + b.length) size <<= 1;
+    const re1 = new Float64Array(size), im1 = new Float64Array(size), re2 = new Float64Array(size), im2 = new Float64Array(size);
+    re1.set(a); re2.set(b);
+    fft(re1, im1, false); fft(re2, im2, false);
+    for (let i = 0; i < size; i++) { const r = re1[i] * re2[i] - im1[i] * im2[i]; im1[i] = re1[i] * im2[i] + im1[i] * re2[i]; re1[i] = r; }
+    fft(re1, im1, true);
+    return Float32Array.from(re1.subarray(0, outLen));
+  }
+  function fft(re, im, inverse) {
+    const n = re.length;
+    for (let i = 1, j = 0; i < n; i++) {
+      let bit = n >> 1; for (; j & bit; bit >>= 1) j ^= bit; j ^= bit;
+      if (i < j) { [re[i], re[j]] = [re[j], re[i]]; [im[i], im[j]] = [im[j], im[i]]; }
+    }
+    for (let len = 2; len <= n; len <<= 1) {
+      const ang = (inverse ? 2 : -2) * Math.PI / len, wr = Math.cos(ang), wi = Math.sin(ang);
+      for (let i = 0; i < n; i += len) {
+        let cr = 1, ci = 0;
+        for (let k = 0; k < len / 2; k++) {
+          const ar = re[i + k], ai = im[i + k], br = re[i + k + len / 2] * cr - im[i + k + len / 2] * ci, bi = re[i + k + len / 2] * ci + im[i + k + len / 2] * cr;
+          re[i + k] = ar + br; im[i + k] = ai + bi; re[i + k + len / 2] = ar - br; im[i + k + len / 2] = ai - bi;
+          const t = cr * wr - ci * wi; ci = cr * wi + ci * wr; cr = t;
+        }
+      }
+    }
+    if (inverse) for (let i = 0; i < n; i++) { re[i] /= n; im[i] /= n; }
+  }
+
+  function drumSample(name, kit) {
+    const rng = E.makeRng(E.crc32(new TextEncoder().encode(`${name}:${kit}`)));
+    const T = (n) => Float32Array.from({ length: n }, (_, i) => i / SR);
+    if (name === "kick") {
+      const n = Math.trunc(0.45 * SR), t = T(n), f = t.map((q) => 48 + 110 * Math.exp(-q / 0.035));
+      const x = mul(sine(f, n), expdecay(n, kit !== "trap" ? 0.4 : 0.25)), c = Math.trunc(0.003 * SR);
+      for (let i = 0; i < c; i++) x[i] += 0.5 * (rng.random() * 2 - 1);
+      return tanhIn(x, 1.6);
+    }
+    if (name === "snare" || name === "clap") {
+      const n = Math.trunc(0.5 * SR), nz = noise(n, rng);
+      let x;
+      if (name === "clap") {
+        const env = new Float32Array(n);
+        for (let k = 0; k < 3; k++) { const s = Math.trunc(k * 0.011 * SR), e = expdecay(n - s, k < 2 ? 0.012 : 0.2); for (let i = 0; i < e.length; i++) env[s + i] += e[i]; }
+        x = mul(bp(nz, 900, 2600), env);
+      } else {
+        x = mix(mul(bp(nz, 1200, 9000), expdecay(n, 0.18), 0.8), mul(sine(185, n), expdecay(n, 0.08)), 0.7);
+        if (["lofi", "folk", "rnb"].includes(kit)) mul(lp(x, 4000), 0.7);
+      }
+      if (kit === "80s") {
+        const m = Math.trunc(0.35 * SR), ir = mul(noise(m, rng), expdecay(m, 0.8));
+        mul(ir, 1 / Math.sqrt(ir.reduce((a, v) => a + v * v, 0)));     // unit energy, as in synth.py
+        const wet = fftConvolve(x, ir, n), g0 = Math.trunc(0.22 * SR), gate = expdecay(n - g0, 0.01);
+        for (let i = 0; i < n; i++) x[i] = (x[i] + wet[i] * 0.7) * (i < g0 ? 1 : gate[i - g0]);
+      }
+      return x;
+    }
+    if (name === "hat" || name === "ohat") {
+      const n = Math.trunc((name === "hat" ? 0.07 : 0.4) * SR);
+      return mul(hp(noise(n, rng), 7000, 4), expdecay(n, name === "hat" ? 0.04 : 0.35), kit !== "lofi" ? 0.35 : 0.22);
+    }
+    if (name === "crash") { const n = Math.trunc(2.0 * SR); return mul(hp(noise(n, rng), 4500), expdecay(n, 1.8), 0.35); }
+    if (name === "tom") { const n = Math.trunc(0.4 * SR); return mul(sine(T(n).map((q) => 105 + 60 * Math.exp(-q / 0.05)), n), expdecay(n, 0.3)); }
+    if (name === "taiko" || name === "taiko_hi") {
+      const n = Math.trunc(1.0 * SR), base = name === "taiko" ? 58 : 170;
+      const x = mul(sine(T(n).map((q) => base + base * 0.8 * Math.exp(-q / 0.04)), n), expdecay(n, name === "taiko" ? 0.7 : 0.25));
+      mix(x, mul(lp(noise(n, rng), 900), expdecay(n, 0.08)), 0.6);
+      return tanhIn(x, 1.8);
+    }
+    if (name === "boom") {
+      const n = Math.trunc(3.0 * SR), x = mul(sine(T(n).map((q) => 38 + 60 * Math.exp(-q / 0.1)), n), expdecay(n, 2.2));
+      mix(x, mul(lp(noise(n, rng), 400), expdecay(n, 0.6)), 0.5);
+      return tanhIn(x, 1.5);
+    }
+    return new Float32Array(100);
+  }
+
+  // ----------------------------------------------------------------- mixing
+  const INSTRUMENT_FOR_BASS = { "808": "808", sustain: "sub_bass" };
+  const ARP_SOUND = { cinematic: "strings_lead", ambient: "bells", folk: "guitar_ac", lofi: "epiano" };
+  const PANS = { lead: 0, vocal: 0, bass: 0, arp: 0.3, choir: -0.2, brass: 0.2, bells: 0.35 };
+  const SENDS = { lead: 0.25, vocal: 0.3, chords: 0.35, arp: 0.4, bass: 0.02, drums: 0.12, choir: 0.5, brass: 0.3, bells: 0.5 };
+  const STEM_OF = { lead: "melody", vocal: "melody", chords: "chords", arp: "chords", choir: "chords", brass: "chords", bells: "chords", bass: "bass", drums: "drums" };
+  const DRUM_PAN = { hat: 0.25, ohat: 0.3, tom: -0.2, crash: -0.25, taiko_hi: 0.2 };
+  const GAIN = { lead: 0.55, vocal: 0.6, chords: 0.28, arp: 0.18, bass: 0.75, choir: 0.22, brass: 0.22, bells: 0.2 };
+  const STEMS = ["drums", "bass", "chords", "melody"];
+
+  function place(L, R, x, start, pan, scale) {
+    const s = Math.trunc(start * SR);
+    if (s >= L.length || scale === 0) return;
+    const e = Math.min(L.length, s + x.length);
+    const l = Math.cos((pan + 1) * Math.PI / 4) * 1.414 * scale, r = Math.sin((pan + 1) * Math.PI / 4) * 1.414 * scale;
+    for (let i = s; i < e; i++) { const v = x[i - s]; L[i] += v * l; R[i] += v * r; }
+  }
+
+  /** Freeverb-style stereo reverb. Replaces (L, R) in place with the wet signal, scaled so white noise keeps its level
+   *  (in place saves two song-length buffers, which matters on phones). Returns [L, R]. */
+  function reverb(L, R, amount) {
+    const combs = [1116, 1188, 1277, 1356, 1422, 1491, 1557, 1617], allp = [556, 441, 341, 225], spread = 23;
+    const fb = Math.min(0.93, 0.76 + 0.2 * amount), damp = 0.25, pre = Math.trunc(0.012 * SR);
+    const norm = 1 / Math.sqrt(combs.length / (1 - fb * fb)) * 0.254;   // calibrated: white noise in = same level out (tests/synth.test.mjs)
+    for (const [x, off] of [[L, 0], [R, spread]]) {
+      const n = x.length, ring = new Float32Array(pre);
+      const cb = combs.map((c) => ({ buf: new Float32Array(c + off), i: 0, store: 0 }));
+      const ab = allp.map((c) => ({ buf: new Float32Array(c + off), i: 0 }));
+      for (let t = 0; t < n; t++) {
+        const inp = ring[t % pre];                    // input from `pre` samples ago (pre-delay)
+        ring[t % pre] = x[t];
+        let acc = 0;
+        for (const c of cb) {
+          const o = c.buf[c.i];
+          c.store = o * (1 - damp) + c.store * damp;
+          c.buf[c.i] = inp + c.store * fb;
+          if (++c.i >= c.buf.length) c.i = 0;
+          acc += o;
+        }
+        for (const a of ab) {
+          const o = a.buf[a.i];
+          a.buf[a.i] = acc + o * 0.5;
+          if (++a.i >= a.buf.length) a.i = 0;
+          acc = o - acc;
+        }
+        x[t] = acc * norm;
+      }
+    }
+    return [L, R];
+  }
+
+  function instrumentFor(track, style) {
+    return { lead: style.lead, chords: style.chords, bass: INSTRUMENT_FOR_BASS[style.bass] || "synth_bass", arp: ARP_SOUND[style.genre] || "arp",
+      vocal: "vocal", choir: "choir", brass: "brass", bells: "bells" }[track] || "pad";
+  }
+  function songLength(plan) { return Math.trunc((plan.total_bars * 4 * 60 / plan.bpm + 4) * SR); }
+  function kickTimes(plan) {
+    const spb = 60 / plan.bpm, out = [];
+    for (const sec of plan.sections) for (const e of sec.tracks.drums || [])
+      if (e.drum === "kick" || e.drum === "taiko") out.push(sec.start_bar * 4 * spb + e.start * spb);
+    return out;
+  }
+
+  /** One stem, dry + its own reverb, before mastering gain. */
+  async function renderStemRaw(plan, stem, onNote) {
+    const style = plan.style, spb = 60 / plan.bpm, N = songLength(plan);
+    const L = new Float32Array(N), R = new Float32Array(N);
+    let SL = new Float32Array(N), SRb = new Float32Array(N);
+    const rng = E.makeRng(E.crc32(new TextEncoder().encode(`${plan.seed || 0}:${stem}`)));
+    const ctx = { rng, brightness: style.brightness ?? 0.6, vocal_feel: style.vocal_feel }, cache = new Map(), drumCache = new Map();
+    const reverbAmt = style.reverb ?? 0.3;
+    let count = 0;
+    for (const sec of plan.sections) {
+      const off = sec.start_bar * 4 * spb;
+      for (const [track, events] of Object.entries(sec.tracks)) {
+        if ((STEM_OF[track] || "chords") !== stem) continue;
+        const send = (SENDS[track] ?? 0.3) * (0.5 + reverbAmt);
+        if (track === "drums") {
+          for (const e of events) {
+            if (!drumCache.has(e.drum)) drumCache.set(e.drum, drumSample(e.drum, style.kit));
+            const x = drumCache.get(e.drum), g = (e.vel / 127) ** 1.2, t = off + e.start * spb, p = DRUM_PAN[e.drum] || 0;
+            place(L, R, x, t, p, g);
+            place(SL, SRb, x, t, p, g * send * (["snare", "clap", "taiko", "boom"].includes(e.drum) ? 2.5 : 0.5));
+          }
+          continue;
+        }
+        const inst = instrumentFor(track, style);
+        for (let k = 0; k < events.length; k++) {
+          const e = events[k];
+          if (track === "vocal") { ctx.vowel = e.vowel || "a"; ctx.syl = e.syl || ""; }
+          else if (track === "choir") ctx.vowel = Math.floor(sec.start_bar / 4) % 2 === 0 ? "a" : "o";
+          const dur = e.dur * spb, vq = Math.floor(e.vel / 6);
+          const ck = `${inst}|${e.pitch}|${E.rhe(dur * 100)}|${vq}|${ctx.vowel}|${(ctx.syl || " ")[0]}`;
+          let x = cache.get(ck);
+          if (!x) { x = renderNote(inst, e.pitch, dur, vq * 6 + 3, ctx); cache.set(ck, x); }
+          const pan = track in PANS ? PANS[track] : track === "chords" ? (k % 2 === 0 ? -0.35 : 0.35) : 0, t = off + e.start * spb, g = GAIN[track] ?? 0.3;
+          place(L, R, x, t, pan, g);
+          place(SL, SRb, x, t, pan, g * send);
+          if (++count % 150 === 0) { if (onNote) onNote(); await yieldNow(); }
+        }
+      }
+    }
+    if (stem === "melody") {           // ping-pong delay on the lead for width
+      const d = Math.trunc(spb * 0.75 * SR), eL = new Float32Array(N), eR = new Float32Array(N);
+      for (let i = d; i < N; i++) eL[i] = R[i - d] * 0.22;
+      for (let i = 2 * d; i < N; i++) eR[i] = L[i - 2 * d] * 0.12;
+      lp(eL, 3500); lp(eR, 3500);
+      mix(L, eL, 1); mix(R, eR, 1);
+    }
+    const depth = style.sidechain || 0;
+    if (depth > 0 && (stem === "bass" || stem === "chords")) {
+      const win = Math.trunc(0.25 * SR), shape = Float32Array.from({ length: win }, (_, i) => 1 - depth * Math.exp(-i / (0.07 * SR)));
+      const g = new Float32Array(N).fill(1);
+      for (const t of kickTimes(plan)) { const s = Math.trunc(t * SR); for (let i = s; i < Math.min(N, s + win); i++) g[i] = Math.min(g[i], shape[i - s]); }
+      mul(L, g); mul(R, g); mul(SL, g); mul(SRb, g);
+    }
+    await yieldNow();
+    reverb(SL, SRb, reverbAmt);
+    mix(L, SL, 0.5); mix(R, SRb, 0.5);
+    SL = SRb = null;
+    if (stem === "drums" && (style.kit === "lofi" || style.genre === "lofi")) { lp(L, 6000); lp(R, 6000); }
+    if (stem === "bass") { hp(L, 28); hp(R, 28); }
+    if (stem === "chords" || stem === "melody") { hp(L, 120); hp(R, 120); }
+    return [L, R];
+  }
+
+  function fade(x, end) {
+    const y = x.slice(0, end), f = Math.min(Math.trunc(0.3 * SR), y.length);
+    for (let i = 0; i < f; i++) y[y.length - f + i] *= 1 - i / (f - 1 || 1);
+    return y;
+  }
+
+  /** Full song. Returns { left, right, sr, gain, end, seconds } (gain/end let renderStem match the mix). */
+  async function renderSong(plan, onProgress = () => {}) {
+    const N = songLength(plan), L = new Float32Array(N), R = new Float32Array(N);
+    for (let s = 0; s < STEMS.length; s++) {
+      const [a, b] = await renderStemRaw(plan, STEMS[s], () => onProgress((s + 0.5) / (STEMS.length + 0.5)));
+      mix(L, a, 1); mix(R, b, 1);
+      onProgress((s + 1) / (STEMS.length + 0.5));
+      await yieldNow();
+    }
+    if (plan.style.genre === "lofi") {                 // vinyl crackle and hiss
+      const r1 = E.makeRng(3), cr = new Float32Array(N), hs = new Float32Array(N);
+      for (let i = 0; i < N; i++) { const hit = r1.random() > 0.9993; cr[i] = hit ? (r1.random() * 0.6 - 0.3) : 0; hs[i] = r1.normal(0, 1); }
+      lp(cr, 5000); lp(hs, 2000);
+      for (let i = 0; i < N; i++) { const v = cr[i] * 0.3 + hs[i] * 0.004; L[i] += v; R[i] += v; }
+    }
+    let ss = 0;
+    for (let i = 0; i < N; i++) ss += L[i] * L[i] + R[i] * R[i];
+    const rms = Math.sqrt(ss / (2 * N)) || 1e-9;
+    let gain = 10 ** (-14 / 20) / rms, peak = 0;
+    const knee = 0.7;
+    for (const x of [L, R]) for (let i = 0; i < N; i++) {
+      let y = x[i] * gain;
+      const a = Math.abs(y);
+      if (a > knee) y = Math.sign(y) * (knee + (1 - knee) * Math.tanh((a - knee) / (1 - knee)));
+      x[i] = y;
+      if (Math.abs(y) > peak) peak = Math.abs(y);
+    }
+    if (peak > 0.97) { const k = 0.97 / peak; mul(L, k); mul(R, k); gain *= k; }
+    let last = -1;
+    for (let i = N - 1; i >= 0; i--) if (Math.abs(L[i]) > 1e-4 || Math.abs(R[i]) > 1e-4) { last = i; break; }
+    const end = last >= 0 ? Math.min(N, last + Math.trunc(0.3 * SR)) : N;
+    onProgress(1);
+    return { left: fade(L, end), right: fade(R, end), sr: SR, gain, end, seconds: end / SR };
+  }
+
+  /** One stem with the same mastering gain and length as the song it came from. */
+  async function renderStem(plan, stem, gain, end) {
+    const [L, R] = await renderStemRaw(plan, stem);
+    mul(L, gain); mul(R, gain);
+    return [fade(L, end), fade(R, end)];
+  }
+
+  /** Short preview of one section (for "play this section" after regenerating it). */
+  function sectionPlan(plan, sectionId) {
+    const sec = plan.sections.find((s) => s.id === sectionId);
+    return { ...plan, sections: [{ ...sec, start_bar: 0 }], total_bars: sec.bars };
+  }
+
+  /** The built-in example: an original 15-note hook in A minor, hummed with scoops, vibrato and drift (port of tests/fake_hum.py). */
+  const HOOK = [[69, 1], [72, 1], [76, 1.5], [74, 0.5], [72, 1], [71, 0.5], [72, 0.5], [69, 2], [67, 1], [69, 1], [72, 1], [74, 1], [76, 1.5], [74, 0.5], [72, 2]];
+  function demoHum(bpm = 100, seed = 1) {
+    const rng = E.makeRng(seed), spb = 60 / bpm, parts = [new Float32Array(Math.trunc(0.4 * SR))];
+    for (const [midi, beats] of HOOK) {
+      const dur = beats * spb * (0.93 + 0.14 * rng.random()), n = Math.trunc(dur * SR), x = new Float32Array(n);
+      const target = midi - 12 + 0.3 + rng.normal(0, 0.14), amp = 0.6 + 0.4 * rng.random(), gap = Math.trunc((0.03 + 0.05 * rng.random()) * SR);
+      let ph = 0;
+      for (let i = 0; i < n; i++) {
+        const t = i / SR, scoop = -0.8 * Math.exp(-t / 0.04), vib = 0.15 * Math.sin(TWO_PI * 5.3 * t) * Math.min(1, Math.max(0, (t - 0.2) / 0.3));
+        ph += 440 * 2 ** ((target + scoop + vib - 69) / 12) / SR;
+        let v = 0;
+        for (let k = 1; k < 12; k++) v += Math.sin(TWO_PI * k * ph) / k ** 1.5;
+        x[i] = v * Math.min(1, t / 0.03) * Math.min(1, (dur - t) / 0.05) * amp;
+      }
+      for (let i = 0; i < gap; i++) x[n - gap + i] *= (1 - i / (gap - 1)) ** 3;
+      parts.push(x);
+    }
+    parts.push(new Float32Array(Math.trunc(0.5 * SR)));
+    const y = new Float32Array(parts.reduce((a, p) => a + p.length, 0));
+    let o = 0; for (const p of parts) { y.set(p, o); o += p.length; }
+    hp(y, 200); lp(y, 3500);
+    let peak = 0;
+    for (let i = 0; i < y.length; i++) { y[i] += 0.004 * rng.normal(0, 1); peak = Math.max(peak, Math.abs(y[i])); }
+    return mul(y, 0.7 / peak);
+  }
+
+  const api = { SR, STEMS, demoHum, renderSong, renderStem, renderNote, drumSample, reverb, sectionPlan, songLength, lp, hp };
+  if (typeof module !== "undefined" && module.exports) module.exports = api;
+  else root.LarkspunSynth = api;
+})(typeof globalThis !== "undefined" ? globalThis : this);
+
+</script>
+<script id="core-worker" type="text/plain">
+self.onmessage = async (ev) => {
+  const m = ev.data;
+  try {
+    let result, transfer = [];
+    if (m.op === "transcribe") result = LarkspunEngine.transcribe(m.samples, m.sr);
+    else if (m.op === "render") {
+      result = await LarkspunSynth.renderSong(m.plan, (p) => self.postMessage({ id: m.id, progress: p }));
+      transfer = [result.left.buffer, result.right.buffer];
+    } else if (m.op === "stem") {
+      const [left, right] = await LarkspunSynth.renderStem(m.plan, m.stem, m.gain, m.end);
+      result = { left, right }; transfer = [left.buffer, right.buffer];
+    } else throw new Error("unknown job " + m.op);
+    self.postMessage({ id: m.id, ok: true, result }, transfer);
+  } catch (e) { self.postMessage({ id: m.id, ok: false, error: String((e && e.message) || e) }); }
+};
+</script>
+<script>
+"use strict";
+const E = window.LarkspunEngine, S = window.LarkspunSynth;
+const $ = (id) => document.getElementById(id);
+const APP = "Larkspun";
+const MAX_TAKE_SECONDS = 180, MIN_TAKE_SECONDS = 1.5;
+const state = { project: null, take: null, song: null, busy: false, downloads: undefined, timings: {}, saved: false };
+const FRAMED = (() => { try { return window.top !== window; } catch (e) { return true; } })();
+$("versionOut").textContent = E.VERSION;
+
+// ---------------------------------------------------------------- jobs (Web Worker, main-thread fallback)
+let worker = null, jobSeq = 0;
+const jobs = new Map();
+function startWorker() {
+  try {
+    const src = ["core-engine", "core-synth", "core-worker"].map((id) => $(id).textContent).join("\n;\n");
+    worker = new Worker(URL.createObjectURL(new Blob([src], { type: "text/javascript" })));
+    worker.onmessage = (ev) => {
+      const m = ev.data, j = jobs.get(m.id);
+      if (!j) return;
+      if (m.progress !== undefined) { if (j.onProgress) j.onProgress(m.progress); return; }
+      jobs.delete(m.id);
+      m.ok ? j.resolve(m.result) : j.reject(new Error(m.error));
+    };
+    worker.onerror = (e) => { e.preventDefault && e.preventDefault(); for (const j of jobs.values()) j.reject(new Error("The audio engine stopped: " + (e.message || "unknown error"))); jobs.clear(); worker = null; };
+  } catch (e) { worker = null; }
+}
+async function runHere(op, a, onProgress) {
+  if (op === "transcribe") return E.transcribe(a.samples, a.sr);
+  if (op === "render") return S.renderSong(a.plan, onProgress);
+  const [left, right] = await S.renderStem(a.plan, a.stem, a.gain, a.end);
+  return { left, right };
+}
+function run(op, args, transfer = [], onProgress) {
+  if (!worker) return runHere(op, args, onProgress);
+  return new Promise((resolve, reject) => {
+    const id = ++jobSeq;
+    jobs.set(id, { resolve, reject, onProgress });
+    try { worker.postMessage({ id, op, ...args }, transfer); }
+    catch (e) { jobs.delete(id); worker = null; runHere(op, args, onProgress).then(resolve, reject); }
+  });
+}
+startWorker();
+
+// ---------------------------------------------------------------- small helpers
+const fmt = (s) => { s = Math.max(0, Math.floor(s)); return `${Math.floor(s / 60)}:${String(s % 60).padStart(2, "0")}`; };
+const uid = () => Date.now().toString(36) + Math.random().toString(36).slice(2, 8);
+const css = (name) => getComputedStyle(document.documentElement).getPropertyValue(name).trim();
+const slug = (s) => (s || "song").toLowerCase().normalize("NFKD").replace(/[^a-z0-9]+/g, "-").replace(/^-|-$/g, "").slice(0, 40) || "song";
+const NOTE = E.NOTE_NAMES;
+const noteName = (m) => NOTE[((m % 12) + 12) % 12] + (Math.floor(m / 12) - 1);
+function show(el, text, error = false) { el.textContent = text; el.hidden = !text; if (el.classList) el.classList.toggle("error", !!error); }
+const reduceMotion = () => window.matchMedia && window.matchMedia("(prefers-reduced-motion: reduce)").matches;
+function setBusy(b) {
+  state.busy = b;
+  for (const id of ["recordBtn", "uploadBtn", "demoBtn", "createBtn", "halfBtn", "doubleBtn", "exportBtn", "exportStemsBtn"]) $(id).disabled = b;
+  document.querySelectorAll(".sec button, .versions button, .lib-item button").forEach((x) => (x.disabled = b));
+  if (!b) updateCreateHint();
+}
+function canvasCtx(cv) {
+  const dpr = window.devicePixelRatio || 1, w = cv.clientWidth, h = cv.clientHeight;
+  if (cv.width !== Math.round(w * dpr) || cv.height !== Math.round(h * dpr)) { cv.width = Math.round(w * dpr); cv.height = Math.round(h * dpr); }
+  const c = cv.getContext("2d");
+  c.setTransform(dpr, 0, 0, dpr, 0, 0);
+  c.clearRect(0, 0, w, h);
+  return [c, w, h];
+}
+
+// ---------------------------------------------------------------- storage (IndexedDB, optional)
+const store = {
+  db: null, ok: false,
+  async open() {
+    try {
+      this.db = await new Promise((res, rej) => {
+        const r = indexedDB.open("larkspun", 1);
+        r.onupgradeneeded = () => r.result.createObjectStore("projects", { keyPath: "id" });
+        r.onsuccess = () => res(r.result); r.onerror = () => rej(r.error);
+      });
+      this.ok = true;
+    } catch (e) { this.ok = false; }
+    return this.ok;
+  },
+  tx(mode, fn) {
+    return new Promise((res, rej) => {
+      try { const t = this.db.transaction("projects", mode), s = t.objectStore("projects"), r = fn(s); t.oncomplete = () => res(r && r.result); t.onerror = () => rej(t.error); t.onabort = () => rej(t.error); }
+      catch (e) { rej(e); }
+    });
+  },
+  async all() { if (!this.ok) return []; try { return (await this.tx("readonly", (s) => s.getAll())) || []; } catch (e) { return []; } },
+  async put(p) {
+    if (!this.ok) return false;
+    const rec = { ...p };
+    try { await this.tx("readwrite", (s) => s.put(rec)); return true; }
+    catch (e) {
+      try { delete rec.takeBlob; await this.tx("readwrite", (s) => s.put(rec)); return true; } catch (e2) { return false; }
+    }
+  },
+  async del(id) { if (!this.ok) return; try { await this.tx("readwrite", (s) => s.delete(id)); } catch (e) { /* nothing to undo */ } },
+};
+
+// ---------------------------------------------------------------- taking a hum
+async function decodeBlob(blob) {
+  const buf = await blob.arrayBuffer();
+  const AC = window.OfflineAudioContext || window.webkitOfflineAudioContext;
+  if (!AC) throw new Error("This browser can't decode audio files.");
+  const ctx = new AC(1, 1, 44100);
+  const audio = await new Promise((res, rej) => { const p = ctx.decodeAudioData(buf, res, rej); if (p && p.then) p.then(res, rej); });
+  const n = audio.length, out = new Float32Array(n);
+  for (let c = 0; c < audio.numberOfChannels; c++) { const d = audio.getChannelData(c); for (let i = 0; i < n; i++) out[i] += d[i] / audio.numberOfChannels; }
+  return { samples: out, sr: audio.sampleRate };
+}
+
+async function useTake(take, source, name, blob = null) {
+  const seconds = take.samples.length / take.sr;
+  if (seconds < MIN_TAKE_SECONDS) return show($("humNotice"), `That recording is only ${seconds.toFixed(1)} seconds long. Hum for at least 5 seconds.`, true);
+  if (seconds > MAX_TAKE_SECONDS) return show($("humNotice"), `That recording is ${fmt(seconds)} long. Trim it to under ${MAX_TAKE_SECONDS / 60} minutes; one verse or chorus is enough.`, true);
+  setBusy(true);
+  show($("humNotice"), `Listening to ${source === "demo" ? "the example" : "your"} hum…`);
+  try {
+    const t0 = performance.now();
+    const a = await run("transcribe", { samples: take.samples.slice(0), sr: take.sr });
+    state.timings.transcribe = Math.round(performance.now() - t0);
+    if (a.melody.notes.length < 3) {
+      show($("humNotice"), "I couldn't hear a clear melody in that recording. Hum one note at a time, close to the phone, somewhere quiet, and try again.", true);
+      return;
+    }
+    const first = a.raw_notes[0].start, spb = 60 / a.melody.bpm, shift = (a.melody.meta && a.melody.meta.octave_shift) || 0;
+    const project = {
+      id: uid(), name, source, created: Date.now(), updated: Date.now(), takeBlob: blob,
+      melody: a.melody, duration: a.duration_sec, processing_ms: a.processing_ms,
+      contour: a.pitch_contour.map(([t, m]) => [+((t - first) / spb).toFixed(3), m === null ? null : +(m + shift - a.melody.tuning_offset_cents / 100).toFixed(2)]),
+      versions: [], current: -1,
+    };
+    state.project = project; state.take = take; state.song = null; state.saved = false;
+    if (source !== "demo") { await persist(); }
+    show($("humNotice"), "");
+    renderProject(true);
+  } catch (e) {
+    show($("humNotice"), "Something went wrong while listening: " + e.message + ". Try another recording.", true);
+  } finally { setBusy(false); }
+}
+
+$("demoBtn").onclick = () => useTake({ samples: S.demoHum(), sr: S.SR }, "demo", "Example hum");
+$("uploadBtn").onclick = () => $("fileInput").click();
+$("fileInput").onchange = async (ev) => {
+  const f = ev.target.files && ev.target.files[0];
+  ev.target.value = "";
+  if (f) await useFile(f);
+};
+async function useFile(f) {
+  show($("humNotice"), `Opening ${f.name}…`);
+  let take;
+  try { take = await decodeBlob(f); }
+  catch (e) { return show($("humNotice"), `This browser can't read ${f.name}. Try a WAV, MP3 or M4A recording (Voice Memos on iPhone and Recorder on Android both work).`, true); }
+  await useTake(take, "upload", f.name.replace(/\.[^.]+$/, "") || "My hum", f);
+}
+const humStation = $("stationHum");
+humStation.addEventListener("dragover", (e) => { e.preventDefault(); });
+humStation.addEventListener("drop", (e) => { e.preventDefault(); const f = e.dataTransfer.files && e.dataTransfer.files[0]; if (f && !state.busy) useFile(f); });
+
+// Recording: works when the page is allowed to use the microphone (Claude pages are not).
+const rec = { stream: null, mr: null, chunks: [], t0: 0, timer: 0, ctx: null };
+$("recordBtn").onclick = async () => {
+  const help = FRAMED
+    ? "This page can't use the microphone while it is shown inside Claude. Record your hum with your phone's voice recorder (Voice Memos on iPhone, Recorder on Android), then press Upload a recording. Or try the example hum first."
+    : "Larkspun isn't allowed to use the microphone. On iPhone: tap the aA button in Safari's address bar, then Website Settings, then set Microphone to Allow, and press Record again. On Android or a computer, allow the microphone from the lock icon next to the address. You can also upload a voice memo.";
+  if (!navigator.mediaDevices || !navigator.mediaDevices.getUserMedia || !window.MediaRecorder)
+    return show($("humNotice"), FRAMED ? help : "This browser can't record audio. Update it, or record a voice memo and press Upload a recording.", true);
+  setAudioSession("play-and-record");
+  try { rec.stream = await navigator.mediaDevices.getUserMedia({ audio: { echoCancellation: false, noiseSuppression: false, autoGainControl: true } }); }
+  catch (e) {
+    setAudioSession("playback");
+    const denied = e && (e.name === "NotAllowedError" || e.name === "SecurityError");
+    return show($("humNotice"), denied ? help : "No microphone was found (" + ((e && e.message) || "unknown error") + "). Upload a recording instead.", true);
+  }
+  rec.chunks = []; rec.mr = new MediaRecorder(rec.stream);
+  rec.mr.ondataavailable = (ev) => ev.data.size && rec.chunks.push(ev.data);
+  rec.mr.onstop = async () => {
+    clearInterval(rec.timer); rec.stream.getTracks().forEach((t) => t.stop()); if (rec.ctx) rec.ctx.close().catch(() => {});
+    setAudioSession("playback");
+    $("recordingPanel").hidden = true;
+    const blob = new Blob(rec.chunks, { type: rec.mr.mimeType || "audio/webm" });
+    try { await useTake(await decodeBlob(blob), "mic", "Hum " + new Date().toLocaleString([], { day: "numeric", month: "short", hour: "2-digit", minute: "2-digit" }), blob); }
+    catch (e) { show($("humNotice"), "The recording couldn't be read: " + e.message, true); }
+  };
+  try {
+    rec.ctx = new (window.AudioContext || window.webkitAudioContext)();
+    if (rec.ctx.state === "suspended") rec.ctx.resume().catch(() => {});
+    const an = rec.ctx.createAnalyser(); an.fftSize = 1024; rec.ctx.createMediaStreamSource(rec.stream).connect(an);
+    const buf = new Float32Array(an.fftSize);
+    rec.timer = setInterval(() => {
+      an.getFloatTimeDomainData(buf); let p = 0; for (const v of buf) p = Math.max(p, Math.abs(v));
+      $("recLevel").style.width = Math.min(100, p * 140) + "%";
+      const s = (performance.now() - rec.t0) / 1000; $("recTime").textContent = fmt(s);
+      if (s > MAX_TAKE_SECONDS) $("stopBtn").click();
+    }, 100);
+  } catch (e) { /* the level meter is optional */ }
+  rec.t0 = performance.now(); rec.mr.start(250);
+  $("recordingPanel").hidden = false; show($("humNotice"), "Recording. Hum your melody, then press Stop.");
+};
+$("stopBtn").onclick = () => { if (rec.mr && rec.mr.state !== "inactive") rec.mr.stop(); };
+
+// Tempo detected at half or double speed: rescale the note timings so the melody sounds the same.
+function setTempo(factor) {
+  const p = state.project; if (!p) return;
+  const m = p.melody;
+  const notes = m.notes.map((n) => ({ ...n, start: n.start * factor, dur: n.dur * factor }));
+  const end = Math.max(...notes.map((n) => n.start + n.dur));
+  p.melody = { ...m, bpm: Math.round(m.bpm * factor * 10) / 10, notes, bars: E.barsFor(end) };
+  p.contour = p.contour.map(([b, mm]) => [b * factor, mm]);
+  p.updated = Date.now();
+  renderProject(false); persist();
+}
+$("halfBtn").onclick = () => setTempo(0.5);
+$("doubleBtn").onclick = () => setTempo(2);
+
+// ---------------------------------------------------------------- piano roll with the pitch thread
+let rollAnim = 0;
+function drawRoll(progress = 1) {
+  const p = state.project, [c, w, h] = canvasCtx($("roll"));
+  if (!p) return;
+  const notes = p.melody.notes, beats = Math.max(4, p.melody.bars * 4);
+  const pitches = notes.map((n) => n.pitch).concat(p.contour.filter((x) => x[1] !== null && x[0] >= 0 && x[0] <= beats).map((x) => x[1]));
+  let lo = Math.floor(Math.min(...pitches)) - 2, hi = Math.ceil(Math.max(...pitches)) + 2;
+  if (hi - lo < 12) { const pad = (12 - (hi - lo)) / 2; lo -= Math.floor(pad); hi += Math.ceil(pad); }
+  const left = 34, top = 26, bottom = 18, X = (b) => left + (b / beats) * (w - left - 8), Y = (m) => top + (hi - m) / (hi - lo) * (h - top - bottom);
+  const ink = css("--ink"), line = css("--line"), muted = css("--muted"), lark = css("--larkspur"), thread = css("--thread");
+  c.font = `11px ${css("--mono")}`;
+  for (let m = lo; m <= hi; m++) {                       // semitone rows, C labelled
+    c.fillStyle = line; c.globalAlpha = m % 12 === 0 ? 0.9 : 0.35; c.fillRect(left, Y(m), w - left - 8, 1);
+    if (m % 12 === 0 || m === lo + 1) { c.globalAlpha = 1; c.fillStyle = muted; c.fillText(noteName(m), 4, Y(m) + 4); }
+  }
+  c.globalAlpha = 1;
+  for (let b = 0; b <= beats; b++) {                     // beat grid, bar numbers
+    c.fillStyle = line; c.globalAlpha = b % 4 === 0 ? 1 : 0.4; c.fillRect(X(b), top - 6, 1, h - top - bottom + 6);
+    if (b % 4 === 0 && b < beats) { c.globalAlpha = 1; c.fillStyle = muted; c.fillText(String(b / 4 + 1), X(b) + 4, h - 5); }
+  }
+  c.globalAlpha = 1;
+  const rowH = Math.max(4, (h - top - bottom) / (hi - lo) * 0.8);
+  for (const n of notes) {                               // transcribed notes
+    if (n.start / beats > progress) continue;
+    c.fillStyle = lark; c.globalAlpha = 0.25 + 0.55 * Math.min(1, (n.velocity || 96) / 110);
+    const x = X(n.start), wd = Math.max(3, X(n.start + n.dur) - x - 2);
+    c.beginPath(); (c.roundRect ? c.roundRect(x, Y(n.pitch) - rowH / 2, wd, rowH, 3) : c.rect(x, Y(n.pitch) - rowH / 2, wd, rowH)); c.fill();
+  }
+  c.globalAlpha = 1; c.strokeStyle = thread; c.lineWidth = 2; c.lineJoin = "round"; c.beginPath();
+  let pen = false;
+  for (const [b, m] of p.contour) {                      // what you actually sang
+    if (b < 0 || b > beats * progress) { pen = false; continue; }
+    if (m === null) { pen = false; continue; }
+    pen ? c.lineTo(X(b), Y(m)) : c.moveTo(X(b), Y(m)); pen = true;
+  }
+  c.stroke();
+  void ink;
+}
+function animateRoll() {
+  cancelAnimationFrame(rollAnim);
+  if (reduceMotion()) return drawRoll(1);
+  const t0 = performance.now();
+  const step = (t) => { const k = Math.min(1, (t - t0) / 900); drawRoll(1 - (1 - k) ** 3); if (k < 1) rollAnim = requestAnimationFrame(step); };
+  rollAnim = requestAnimationFrame(step);
+}
+
+function renderProject(animate) {
+  const p = state.project; if (!p) return;
+  const m = p.melody;
+  $("rollLabel").textContent = p.source === "demo" ? "Example hum" : p.name;
+  $("keyOut").textContent = m.key.name;
+  $("bpmOut").textContent = (Math.round(m.bpm * 10) / 10) + " BPM";
+  $("barsOut").textContent = m.bars + (m.bars === 1 ? " bar" : " bars");
+  $("notesOut").textContent = String(m.notes.length);
+  $("humMeta").textContent = `${fmt(p.duration)} recording, notes ${noteName(Math.min(...m.notes.map((n) => n.pitch)))}–${noteName(Math.max(...m.notes.map((n) => n.pitch)))}` + (p.processing_ms ? `, transcribed in ${(p.processing_ms / 1000).toFixed(1)} s` : "");
+  animate ? animateRoll() : drawRoll(1);
+  renderSongView();
+  updateCreateHint();
+}
+
+// ---------------------------------------------------------------- describing the style
+const EXAMPLES = ["dreamy synthwave, 90 BPM, 80s drums", "lofi hip hop with rhodes, rainy night", "epic cinematic trailer with choir and taiko", "uplifting pop with piano", "acoustic folk with guitar and flute", "dark trap, 808, 140 bpm", "deep house like Daft Punk"];
+const SOUND_NAMES = { saw_lead: "saw lead", supersaw_lead: "supersaw lead", pluck_lead: "pluck lead", bell_lead: "bell lead", epiano_lead: "electric piano", strings_lead: "solo strings",
+  flute_lead: "flute", sax_lead: "sax", guitar_lead: "lead guitar", pad: "pads", piano: "piano", epiano: "Rhodes keys", strings: "strings", guitar: "electric guitar", guitar_ac: "acoustic guitar",
+  supersaw: "supersaw chords", bells: "bells", organ: "organ" };
+const KIT_NAMES = { pop: "pop kit", "80s": "80s gated drums", house: "four-on-the-floor", trap: "trap hats and 808", boombap: "boom-bap", lofi: "dusty lo-fi kit", rock: "live rock kit", rnb: "R&B kit", folk: "light folk kit", taiko: "taiko drums", none: "no drums" };
+for (const ex of EXAMPLES) {
+  const b = document.createElement("button"); b.type = "button"; b.className = "chip"; b.textContent = ex; b.setAttribute("aria-pressed", "false");
+  b.onclick = () => { $("prompt").value = ex; describe(); };
+  $("examples").append(b);
+}
+function describe() {
+  const text = $("prompt").value, spec = E.parseStyle(text);
+  document.querySelectorAll("#examples .chip").forEach((b) => b.setAttribute("aria-pressed", String(b.textContent === text.trim())));
+  const tempo = spec.bpm ? Math.round(spec.bpm) + " BPM" : state.project ? "near your " + Math.round(state.project.melody.bpm) + " BPM" : "your tempo";
+  const parts = [`<b>${spec.genre === "rnb" ? "R&amp;B" : spec.genre === "edm" ? "EDM" : spec.genre === "lofi" ? "lo-fi" : spec.genre === "hiphop" ? "hip hop" : spec.genre}</b>`];
+  if (spec.mood.length) parts.push(spec.mood.join(", "));
+  parts.push(tempo, SOUND_NAMES[spec.lead] || spec.lead, SOUND_NAMES[spec.chords] || spec.chords, KIT_NAMES[spec.kit] || spec.kit);
+  if (spec.extras.length) parts.push(spec.extras.join(", "));
+  if (spec.key_override) parts.push("in " + spec.key_override);
+  $("heard").innerHTML = (text.trim() ? "Heard: " : "With no description you get: ") + parts.join(" · ");
+}
+$("prompt").addEventListener("input", describe);
+function updateCreateHint() {
+  $("createBtn").disabled = state.busy || !state.project;
+  $("createHint").textContent = state.project ? "" : "Add a melody first.";
+}
+
+// ---------------------------------------------------------------- creating, regenerating, rendering
+async function persist() {
+  const p = state.project; if (!p) return;
+  p.updated = Date.now();
+  if (await store.put(p)) state.saved = true;
+  renderLibrary();
+}
+function addVersion(plan, note, prompt, vocals) {
+  const p = state.project;
+  p.versions.push({ n: p.versions.length + 1, note, prompt, vocals, plan, created: Date.now() });
+  p.current = p.versions.length - 1;
+}
+$("createBtn").onclick = async () => {
+  const p = state.project; if (!p || state.busy) return;
+  ensureAudio();
+  const prompt = $("prompt").value.trim(), vocals = $("vocals").checked;
+  const t0 = performance.now();
+  const plan = E.planSong(p.melody, E.parseStyle(prompt), Math.floor(Math.random() * 2147483647), vocals);
+  state.timings.plan = Math.round(performance.now() - t0);
+  addVersion(plan, prompt ? prompt : "Default style", prompt, vocals);
+  if (p.source === "demo" && !state.saved) p.name = "Example hum";
+  await renderCurrent();
+};
+async function regenerate(sectionId) {
+  const p = state.project; if (!p || state.busy) return;
+  ensureAudio();
+  const v = p.versions[p.current], plan = JSON.parse(JSON.stringify(v.plan));
+  E.regenerateSection(plan, sectionId);
+  const sec = plan.sections.find((s) => s.id === sectionId);
+  addVersion(plan, `${sec.label} rewritten`, v.prompt, v.vocals);
+  await renderCurrent(sec.start_bar * 4 * 60 / plan.bpm);
+}
+async function renderCurrent(playFrom = null, isNew = true) {
+  const p = state.project, v = p.versions[p.current];
+  $("saveLink").hidden = true;
+  stopPlayback(); state.song = null; state.peaks = null;
+  setBusy(true); $("songEmpty").hidden = true; show($("songError"), ""); $("progress").hidden = false;
+  renderSongView();
+  const stages = ["Playing the drums", "Laying down the bass", "Voicing chords and pads", "Recording the lead", "Mixing and mastering"];
+  const onProgress = (f) => { $("progressBar").style.width = Math.round(f * 100) + "%"; $("progressText").textContent = stages[Math.min(4, Math.floor(f * 4.5))] + "…"; };
+  onProgress(0);
+  try {
+    const t0 = performance.now();
+    const song = await run("render", { plan: v.plan }, [], onProgress);
+    state.timings.render = Math.round(performance.now() - t0);
+    song.version = p.current;
+    state.song = song;
+    state.peaks = peaksOf(song);
+    await persist();
+    $("progress").hidden = true;
+    renderSongView();
+    if (playFrom !== null) { player.offset = playFrom; if (player.ctx && player.ctx.state === "running") play(); drawTimeline(); }
+  } catch (e) {
+    $("progress").hidden = true;
+    show($("songError"), "The song couldn't be rendered: " + e.message + ". Close other tabs and try again; long hums need more memory.", true);
+    if (isNew) { p.versions.splice(p.current, 1); p.current = p.versions.length - 1; }
+    renderSongView();
+  } finally { setBusy(false); renderSongView(); }
+}
+
+// ---------------------------------------------------------------- the song view
+function renderSongView() {
+  const p = state.project, v = p && p.versions[p.current];
+  $("songView").hidden = !v;
+  $("songEmpty").hidden = !!v || !$("progress").hidden;
+  if (!v) return;
+  const plan = v.plan, sum = E.sectionSummary(plan), total = plan.total_bars * 4 * 60 / plan.bpm;
+  $("songName").textContent = p.name;
+  $("songMeta").textContent = `${plan.key.name} · ${plan.bpm} BPM · ${plan.total_bars} bars · ${fmt(state.song ? state.song.seconds : total)}` + (v.vocals ? " · with vocal" : "");
+  const vs = $("versions"); vs.innerHTML = "";
+  p.versions.forEach((x, i) => {
+    const b = document.createElement("button"); b.type = "button"; b.className = "chip"; b.setAttribute("aria-pressed", String(i === p.current));
+    b.textContent = `v${x.n} · ${x.note.length > 34 ? x.note.slice(0, 33) + "…" : x.note}`; b.disabled = state.busy;
+    b.onclick = () => { if (i !== p.current) { p.current = i; renderCurrent(null, false); } };
+    vs.append(b);
+  });
+  const list = $("sections"); list.innerHTML = "";
+  sum.forEach((s) => {
+    const row = document.createElement("div"); row.className = "sec"; row.dataset.id = s.id;
+    const name = document.createElement("div"); name.className = "name";
+    name.innerHTML = `<span></span><small></small><span class="energy" style="width:${Math.round(8 + 40 * s.energy)}px"></span>`;
+    name.children[0].textContent = s.label + (s.variant ? " ✱" : "");
+    name.children[1].textContent = `${fmt(s.start_sec)} · ${s.bars} bars`;
+    const chords = document.createElement("div"); chords.className = "chords";
+    chords.textContent = collapse(s.chords).join("  ");
+    const btn = document.createElement("button"); btn.type = "button"; btn.className = "small-btn"; btn.textContent = "Rewrite";
+    btn.setAttribute("aria-label", "Rewrite the " + s.label); btn.disabled = state.busy || !state.song;
+    btn.onclick = () => regenerate(s.id);
+    row.append(name, chords, btn);
+    if (s.lyrics && s.lyrics.length) { const ly = document.createElement("div"); ly.className = "lyrics"; ly.textContent = s.lyrics.join(" / "); row.append(ly); }
+    list.append(row);
+  });
+  $("durOut").textContent = fmt(state.song ? state.song.seconds : total);
+  $("playBtn").disabled = !state.song;
+  $("prepareRow").hidden = !!state.song || state.busy;
+  for (const id of ["exportBtn", "exportStemsBtn"]) $(id).disabled = state.busy || !state.song || state.downloads === null;
+  updateExportNote();
+  drawTimeline();
+}
+const collapse = (chords) => chords.reduce((a, c) => (a[a.length - 1] === c ? a : a.concat(c)), []);
+
+function peaksOf(song, cols = 900) {          // loudness per column (RMS), so quiet and loud sections look different
+  const n = song.left.length, step = Math.max(1, Math.floor(n / cols)), out = new Float32Array(cols);
+  let top = 1e-9;
+  for (let k = 0; k < cols; k++) {
+    let ss = 0, c = 0;
+    for (let i = k * step; i < Math.min(n, (k + 1) * step); i += 4) { ss += song.left[i] * song.left[i] + song.right[i] * song.right[i]; c += 2; }
+    out[k] = Math.sqrt(ss / Math.max(1, c)); top = Math.max(top, out[k]);
+  }
+  for (let k = 0; k < cols; k++) out[k] /= top;
+  return out;
+}
+function drawTimeline() {
+  const p = state.project, v = p && p.versions[p.current];
+  if (!v || $("songView").hidden) return;
+  const [c, w, h] = canvasCtx($("timeline"));
+  const plan = v.plan, spb = 60 / plan.bpm, total = state.song ? state.song.seconds : plan.total_bars * 4 * spb + 1;
+  const lark = css("--larkspur"), ink = css("--ink"), muted = css("--muted"), thread = css("--thread");
+  const pos = position(), X = (t) => (t / total) * w;
+  c.font = `500 10.5px ${css("--mono")}`;
+  const SHORT = { intro: "Intro", verse1: "V1", prechorus: "Pre", chorus1: "Chorus", verse2: "V2", chorus2: "Chorus", bridge: "Bridge", final_chorus: "Final", outro: "Outro" };
+  let current = null;
+  for (const s of plan.sections) {
+    const a = X(s.start_bar * 4 * spb), b = X((s.start_bar + s.bars) * 4 * spb);
+    c.fillStyle = lark; c.globalAlpha = 0.07 + 0.2 * s.energy; c.fillRect(a + 1, 0, b - a - 2, h);
+    c.globalAlpha = 1; c.fillStyle = muted;
+    const label = b - a > 44 ? SHORT[s.id] : b - a > 22 ? SHORT[s.id].slice(0, 2) : "";
+    c.fillText(label, a + 5, 13);
+    if (pos >= s.start_bar * 4 * spb && pos < (s.start_bar + s.bars) * 4 * spb) current = s;
+  }
+  if (state.peaks) {
+    const pk = state.peaks, mid = h / 2 + 8, amp = (h - 30) / 2;
+    c.fillStyle = ink; c.globalAlpha = 0.75;
+    for (let k = 0; k < pk.length; k++) { const x = (k / pk.length) * w, y = Math.max(0.5, pk[k] * amp); c.fillRect(x, mid - y, Math.max(1, w / pk.length - 0.3), 2 * y); }
+    c.globalAlpha = 1;
+  }
+  if (state.song) { c.fillStyle = thread; c.fillRect(Math.min(w - 2, X(pos)), 0, 2, h); }
+  $("posOut").textContent = fmt(pos);
+  $("secOut").textContent = current ? current.label : "";
+  $("timeline").setAttribute("aria-valuenow", String(Math.round((pos / total) * 100)));
+  document.querySelectorAll(".sec").forEach((r) => r.classList.toggle("playing", player.playing && current && r.dataset.id === current.id));
+}
+
+// ---------------------------------------------------------------- playback (Web Audio)
+const player = { ctx: null, src: null, buffer: null, bufferFor: null, offset: 0, startedAt: 0, playing: false, raf: 0, humSrc: null };
+/** iPhone: play through the speaker even with the silent switch on (Safari 16.4+ Audio Session API). */
+function setAudioSession(type) { try { if (navigator.audioSession) navigator.audioSession.type = type; } catch (e) { /* older Safari */ } }
+function ensureAudio() {
+  if (!rec.stream || rec.stream.getTracks().every((t) => t.readyState === "ended")) setAudioSession("playback");
+  try {
+    if (!player.ctx) player.ctx = new (window.AudioContext || window.webkitAudioContext)();
+    if (player.ctx.state === "suspended") player.ctx.resume().catch(() => {});
+  } catch (e) { player.ctx = null; }
+  return player.ctx;
+}
+function songBuffer() {
+  if (player.bufferFor === state.song) return player.buffer;
+  const s = state.song, b = player.ctx.createBuffer(2, s.left.length, s.sr);
+  b.copyToChannel ? (b.copyToChannel(s.left, 0), b.copyToChannel(s.right, 1)) : (b.getChannelData(0).set(s.left), b.getChannelData(1).set(s.right));
+  player.buffer = b; player.bufferFor = s;
+  return b;
+}
+const position = () => (player.playing && player.ctx ? Math.min(state.song ? state.song.seconds : 0, player.ctx.currentTime - player.startedAt) : player.offset);
+function play() {
+  if (!state.song || !ensureAudio()) return show($("songError"), "This browser blocked audio playback. Tap Play again.", true);
+  stopHum();
+  const src = player.ctx.createBufferSource();
+  src.buffer = songBuffer(); src.connect(player.ctx.destination);
+  if (player.offset >= state.song.seconds - 0.05) player.offset = 0;
+  src.start(0, player.offset);
+  player.startedAt = player.ctx.currentTime - player.offset; player.src = src; player.playing = true;
+  src.onended = () => { if (player.src === src) { player.playing = false; player.offset = 0; setPlayIcon(); drawTimeline(); } };
+  setPlayIcon(); tick();
+}
+function pause() { player.offset = position(); stopSource(); setPlayIcon(); drawTimeline(); }
+function stopSource() { if (player.src) { const s = player.src; player.src = null; try { s.stop(); } catch (e) { /* already stopped */ } } player.playing = false; cancelAnimationFrame(player.raf); }
+function stopPlayback() { stopSource(); player.offset = 0; setPlayIcon(); }
+function seek(t) { const was = player.playing; stopSource(); player.offset = Math.max(0, t); if (was) play(); else drawTimeline(); }
+function tick() { drawTimeline(); if (player.playing) player.raf = requestAnimationFrame(tick); }
+function setPlayIcon() {
+  $("playIcon").innerHTML = player.playing ? '<path d="M6 4h4.5v16H6zM13.5 4H18v16h-4.5z"/>' : '<path d="M7 4.5v15l13-7.5z"/>';
+  $("playBtn").setAttribute("aria-label", player.playing ? "Pause" : "Play");
+}
+$("playBtn").onclick = () => (player.playing ? pause() : play());
+$("timeline").addEventListener("click", (e) => {
+  if (!state.song) return;
+  const r = $("timeline").getBoundingClientRect();
+  ensureAudio(); seek(((e.clientX - r.left) / r.width) * state.song.seconds);
+});
+$("timeline").addEventListener("keydown", (e) => {
+  if (!state.song) return;
+  if (e.key === "ArrowRight" || e.key === "ArrowLeft") { e.preventDefault(); seek(position() + (e.key === "ArrowRight" ? 5 : -5)); }
+  if (e.key === " " || e.key === "Enter") { e.preventDefault(); player.playing ? pause() : play(); }
+});
+async function playHum() {
+  const p = state.project; if (!p) return;
+  if (!ensureAudio()) return;
+  if (player.humSrc) return stopHum();
+  if (!state.take) {
+    try { state.take = p.source === "demo" ? { samples: S.demoHum(), sr: S.SR } : p.takeBlob ? await decodeBlob(p.takeBlob) : null; }
+    catch (e) { state.take = null; }
+    if (!state.take) return show($("humNotice"), "The original recording of this melody wasn't saved on this device, so it can't be played. The melody itself is kept.", true);
+  }
+  pause();
+  const t = state.take, b = player.ctx.createBuffer(1, t.samples.length, t.sr);
+  b.getChannelData(0).set(t.samples);
+  const src = player.ctx.createBufferSource(); src.buffer = b; src.connect(player.ctx.destination); src.start();
+  player.humSrc = src; $("playHumBtn").textContent = "Stop the hum";
+  src.onended = () => { if (player.humSrc === src) stopHum(); };
+}
+function stopHum() { if (player.humSrc) { const s = player.humSrc; player.humSrc = null; try { s.stop(); } catch (e) { /* ended */ } } $("playHumBtn").textContent = "Play the hum"; }
+$("playHumBtn").onclick = playHum;
+
+// ---------------------------------------------------------------- export (.zip through Claude's downloads capability)
+function updateExportNote() {
+  const base = "The zip holds a WAV of the song, MIDI files of the song and your melody, and the project file. Every file is marked as AI-generated.";
+  const s = state.song ? state.song.seconds : 0, mb = (x) => Math.round(x / 1048576);
+  const sizes = s ? ` Song: about ${mb(s * 44100 * 4)} MB. With stems (32-bit WAVs for mixing): about ${mb(s * 44100 * 4 + s * 44100 * 8 * 4)} MB.` : "";
+  $("exportNote").textContent = state.downloads === null ? "Saving files isn't available in this view. Open the page in claude.ai in a web browser to download." : base + sizes;
+}
+async function getDownloads() {
+  if (state.downloads !== undefined) return state.downloads;
+  const framed = FRAMED;
+  for (let i = 0; framed && i < 30 && !(window.claude && typeof window.claude.use === "function"); i++) await new Promise((r) => setTimeout(r, 100));
+  if (!(window.claude && typeof window.claude.use === "function")) return (state.downloads = framed ? null : "anchor");
+  try { state.downloads = await window.claude.use("downloads"); } catch (e) { state.downloads = null; }
+  return state.downloads;
+}
+async function saveFile(filename, blob) {
+  const d = await getDownloads();
+  if (d === "anchor") {                      // our own website: a real link the person taps, which Safari on iPhone always honours
+    const a = $("saveLink");
+    if (a.href) URL.revokeObjectURL(a.href);
+    a.href = URL.createObjectURL(blob); a.download = filename;
+    a.textContent = `Save ${filename} (${(blob.size / 1048576).toFixed(1)} MB)`; a.hidden = false;
+    return "link";
+  }
+  if (!d) throw Object.assign(new Error("Saving files isn't available in this view."), { code: "unavailable" });
+  await d.save({ filename, data: blob });
+  return "saved";
+}
+const utf8 = (s) => new TextEncoder().encode(s);
+async function exportZip(withStems) {
+  const p = state.project, v = p.versions[p.current], song = state.song;
+  if (!song || state.busy) return;
+  setBusy(true);
+  const note = $("exportNote");
+  try {
+    note.textContent = "Packing the files…";
+    const prov = E.provenance(v.plan, APP), stmt = E.statement(prov), info = E.wavInfo(prov, v.plan.style.genre);
+    const files = [
+      ["song.wav", E.wavBytes([song.left, song.right], song.sr, info)],
+      ["song.mid", E.planToMidi(v.plan, stmt)],
+      ["melody.mid", E.melodyToMidi(p.melody, stmt)],
+      ["plan.json", utf8(JSON.stringify({ ...v.plan, provenance: prov }, null, 1))],
+      ["provenance.json", utf8(JSON.stringify(prov, null, 2))],
+      ["README.txt", utf8(`${p.name}, version ${v.n}\n${v.plan.key.name}, ${v.plan.bpm} BPM, ${v.plan.total_bars} bars\nDescription: ${v.prompt || "(none)"}\n\n${stmt}\n\nsong.wav     the mixed and mastered song (16-bit, 44.1 kHz)\nsong.mid     every part as MIDI tracks, for your DAW\nmelody.mid   your hum as notes\nplan.json    the full arrangement Larkspun made\n${withStems ? "stems/       drums, bass, chords and melody as 32-bit float WAVs; together they make the song\n" : ""}`)],
+    ];
+    const lyr = v.plan.sections.filter((s) => s.lyrics && s.lyrics.length).map((s) => `[${s.label}]\n${s.lyrics.join("\n")}`);
+    if (lyr.length) files.push(["lyrics.txt", utf8(lyr.join("\n\n") + "\n")]);
+    if (withStems) {
+      for (const stem of S.STEMS) {
+        note.textContent = `Rendering the ${stem} stem…`;
+        const r = await run("stem", { plan: v.plan, stem, gain: song.gain, end: song.end });
+        files.push([`stems/${stem}.wav`, E.wavBytes([r.left, r.right], song.sr, info, true)]);   // 32-bit float: drum peaks go past full scale before mastering
+      }
+    }
+    const zip = E.zipBytes(files, stmt), name = `${slug(p.name)}-v${v.n}${withStems ? "-stems" : ""}.zip`;
+    note.textContent = "Waiting for you to confirm the download…";
+    const how = await saveFile(name, zip);
+    note.textContent = how === "link" ? "Ready. Tap the Save button above to download the zip." : `Saved ${name} (${(zip.size / 1048576).toFixed(1)} MB).`;
+  } catch (e) {
+    const msg = { declined: "Download cancelled.", rate_limited: "Another download is waiting for your answer. Finish that one first.", too_large: "That file is larger than this app can save. Download the song without stems, or open this page in a web browser on a computer for the stems." }[e && e.code];
+    note.textContent = msg || "The download didn't work: " + ((e && e.message) || e);
+  } finally { setBusy(false); }
+}
+$("exportBtn").onclick = () => exportZip(false);
+$("exportStemsBtn").onclick = () => exportZip(true);
+
+// ---------------------------------------------------------------- library
+async function renderLibrary() {
+  const box = $("library");
+  if (!store.ok) { box.innerHTML = '<p class="small muted">This browser view can\'t save songs, so they last until you close the page. Download the ones you want to keep.</p>'; return; }
+  const all = (await store.all()).sort((a, b) => b.updated - a.updated);
+  box.innerHTML = "";
+  if (!all.length) { box.innerHTML = '<p class="small muted">Melodies you record or upload, and the songs you make from them, are saved here in this browser only.</p>'; return; }
+  for (const p of all) {
+    const row = document.createElement("div"); row.className = "lib-item";
+    const meta = document.createElement("div"); meta.className = "meta";
+    const b = document.createElement("b"); b.textContent = p.name + (state.project && state.project.id === p.id ? " (open)" : "");
+    const s = document.createElement("span"); s.className = "small muted mono";
+    s.textContent = `${p.melody.key.name} · ${Math.round(p.melody.bpm)} BPM · ${p.versions.length} ${p.versions.length === 1 ? "version" : "versions"} · ${new Date(p.updated).toLocaleDateString()}`;
+    meta.append(b, s);
+    const open = document.createElement("button"); open.type = "button"; open.className = "small-btn"; open.textContent = "Open"; open.disabled = state.busy;
+    open.onclick = () => openProject(p);
+    const del = document.createElement("button"); del.type = "button"; del.className = "small-btn"; del.textContent = "Delete"; del.disabled = state.busy;
+    del.onclick = () => {
+      if (del.dataset.armed) { store.del(p.id).then(() => { if (state.project && state.project.id === p.id) { state.saved = false; } renderLibrary(); }); return; }
+      del.dataset.armed = "1"; del.textContent = "Delete for good?"; setTimeout(() => { if (del.isConnected) { delete del.dataset.armed; del.textContent = "Delete"; } }, 4000);
+    };
+    row.append(meta, open, del); box.append(row);
+  }
+}
+async function openProject(p) {
+  if (state.busy) return;
+  stopPlayback(); stopHum();
+  state.project = p; state.take = null; state.song = null; state.peaks = null; state.saved = true;
+  renderProject(true);
+  renderLibrary();
+  if (p.current >= 0) await renderCurrent(null, false);
+}
+$("prepareBtn").onclick = () => { ensureAudio(); renderCurrent(null, false); };
+
+// ---------------------------------------------------------------- test report
+$("reportBtn").onclick = async () => {
+  const p = state.project, v = p && p.versions[p.current];
+  const text = [
+    `Larkspun browser preview ${E.VERSION} test report`, `Date: ${new Date().toISOString()}`, `Browser: ${navigator.userAgent}`,
+    `Engine: ${worker ? "background worker" : "main thread"}; saving: ${store.ok ? "on" : "off"}; downloads: ${state.downloads === undefined ? "not checked" : state.downloads ? "available" : "unavailable"}`,
+    p ? `Melody: ${p.source}, ${p.duration}s, ${p.melody.notes.length} notes, ${p.melody.key.name}, ${p.melody.bpm} BPM, ${p.melody.bars} bars, transcribed in ${p.processing_ms} ms` : "Melody: none",
+    v ? `Song: v${v.n} of ${p.versions.length}, "${v.prompt}", ${v.plan.style.genre}, ${v.plan.bpm} BPM, ${state.song ? state.song.seconds.toFixed(1) + "s" : "not rendered"}, rendered in ${state.timings.render || "?"} ms` : "Song: none",
+    "", "What I tried:", "", "What went wrong or felt off:", "",
+  ].join("\n");
+  $("reportBox").value = text;
+  try { await navigator.clipboard.writeText(text); $("reportState").textContent = "Copied. Paste it into your message to the person who sent you this link."; }
+  catch (e) { $("reportBox").hidden = false; $("reportBox").select(); $("reportState").textContent = "Copy the text below and paste it into your message."; }
+};
+
+// ---------------------------------------------------------------- start
+function redraw() { drawRoll(1); drawTimeline(); }
+window.addEventListener("resize", redraw);
+if (window.matchMedia) { const mq = window.matchMedia("(prefers-color-scheme: dark)"); mq.addEventListener && mq.addEventListener("change", redraw); }
+new MutationObserver(redraw).observe(document.documentElement, { attributes: true, attributeFilter: ["data-theme"] });
+describe();
+(async () => {
+  await store.open();
+  const all = (await store.all()).sort((a, b) => b.updated - a.updated);
+  if (all.length && all[0].melody) { state.project = all[0]; state.saved = true; renderProject(true); renderLibrary(); }
+  else { renderLibrary(); await useTake({ samples: S.demoHum(), sr: S.SR }, "demo", "Example hum"); }
+  getDownloads().then(() => renderSongView());
+})();
+</script>
+</body>
+</html>
